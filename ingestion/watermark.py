@@ -1,9 +1,8 @@
-import psycopg2
 from dotenv import load_dotenv
-import os
 import logging
 from datetime import datetime
 from typing import Optional
+from .db_utils import get_db_connection
 
 load_dotenv()
 
@@ -12,25 +11,6 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-
-def get_db_connection():
-    required_vars = ["POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", 
-                     "POSTGRES_USER", "POSTGRES_PASSWORD"]
-    
-    for var in required_vars:
-        if not os.getenv(var):
-            raise ValueError(f"Missing required environment variable: {var}")
-
-    return psycopg2.connect(
-        host=os.getenv("POSTGRES_HOST"),
-        port=os.getenv("POSTGRES_PORT"),
-        dbname=os.getenv("POSTGRES_DB"),
-        user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD"),
-        connect_timeout=10
-    )
-
 
 def get_watermark(table_name: str) -> Optional[datetime]:
     """Get the last loaded timestamp for incremental loading"""
@@ -44,19 +24,35 @@ def get_watermark(table_name: str) -> Optional[datetime]:
             result = cur.fetchone()
             return result[0] if result else None
 
-
-def update_watermark(table_name: str, last_ts: datetime, rows_loaded: int):
-    """Update watermark after successful data load"""
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO raw._watermark (table_name, last_loaded_ts, rows_loaded, updated_at)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (table_name) 
-                DO UPDATE SET 
-                    last_loaded_ts = EXCLUDED.last_loaded_ts,
-                    rows_loaded = EXCLUDED.rows_loaded,
-                    updated_at = EXCLUDED.updated_at;
-            """, (table_name, last_ts, rows_loaded, datetime.now()))
+def update_watermark(
+    table_name: str, 
+    last_ts: datetime, 
+    rows_loaded: int, 
+    cur=None
+):
+    if cur:
+        # Use existing cursor
+        cur.execute("""
+            INSERT INTO raw._watermark (table_name, last_loaded_ts, rows_loaded, updated_at)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (table_name) 
+            DO UPDATE SET 
+                last_loaded_ts = EXCLUDED.last_loaded_ts,
+                rows_loaded = EXCLUDED.rows_loaded,
+                updated_at = EXCLUDED.updated_at;
+        """, (table_name, last_ts, rows_loaded, datetime.now()))
+    else:
+        # Create new connection
+        with get_db_connection() as conn:
+            with conn.cursor() as new_cur:
+                new_cur.execute("""
+                    INSERT INTO raw._watermark (table_name, last_loaded_ts, rows_loaded, updated_at)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (table_name) 
+                    DO UPDATE SET 
+                        last_loaded_ts = EXCLUDED.last_loaded_ts,
+                        rows_loaded = EXCLUDED.rows_loaded,
+                        updated_at = EXCLUDED.updated_at;
+                """, (table_name, last_ts, rows_loaded, datetime.now()))
 
     logger.info(f"Watermark updated → {table_name} | Rows: {rows_loaded}")

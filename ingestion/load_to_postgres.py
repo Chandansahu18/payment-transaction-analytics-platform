@@ -1,11 +1,12 @@
 import pandas as pd
 import psycopg2
 import psycopg2.extras
+import psycopg2.sql
 from dotenv import load_dotenv
-import os
 import logging
 from typing import Optional
-from watermark import get_watermark, update_watermark
+from .db_utils import get_db_connection
+from . import watermark
 
 load_dotenv()
 
@@ -14,24 +15,6 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-
-def get_db_connection():
-    required_vars = ["POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", 
-                     "POSTGRES_USER", "POSTGRES_PASSWORD"]
-    
-    for var in required_vars:
-        if not os.getenv(var):
-            raise ValueError(f"Missing required environment variable: {var}")
-
-    return psycopg2.connect(
-        host=os.getenv("POSTGRES_HOST"),
-        port=os.getenv("POSTGRES_PORT"),
-        dbname=os.getenv("POSTGRES_DB"),
-        user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD"),
-        connect_timeout=10
-    )
 
 
 def load_data_to_postgres(
@@ -44,35 +27,63 @@ def load_data_to_postgres(
         df = pd.read_csv(csv_path)
         logger.info(f"Loaded {len(df)} rows from {csv_path}")
 
+        if incremental and 'transaction_ts' not in df.columns:
+            raise ValueError(
+                f"'transaction_ts' column is required when incremental=True for table {table_name}"
+            )
+
         if incremental:
-            last_ts = get_watermark(table_name)
+            last_ts = watermark.get_watermark(table_name)
             if last_ts:
                 df['transaction_ts'] = pd.to_datetime(df['transaction_ts'])
                 df = df[df['transaction_ts'] > last_ts]
-                logger.info(f"Filtered to {len(df)} new records")
+                logger.info(f"Filtered to {len(df)} new records since last load")
 
             if df.empty:
-                logger.info(f"No new data for {table_name}")
+                logger.info(f"No new data to load for {table_name}")
                 return
 
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-                tuples = [tuple(x) for x in df.to_numpy()]
-                cols = ','.join(df.columns)
-                conflict_clause = f"ON CONFLICT ({conflict_column}) DO NOTHING" if conflict_column else ""
 
-                query = f"INSERT INTO {table_name} ({cols}) VALUES %s {conflict_clause}"
+                columns = [psycopg2.sql.Identifier(col) for col in df.columns]
+                cols_sql = psycopg2.sql.SQL(', ').join(columns)
+
+                if conflict_column:
+                    conflict_sql = psycopg2.sql.SQL("ON CONFLICT ({}) DO NOTHING").format(
+                        psycopg2.sql.Identifier(conflict_column)
+                    )
+                else:
+                    conflict_sql = psycopg2.sql.SQL("")
+
+                query = psycopg2.sql.SQL(
+                    "INSERT INTO {} ({}) VALUES %s {}"
+                ).format(
+                    psycopg2.sql.Identifier(table_name),
+                    cols_sql,
+                    conflict_sql
+                )
+
+                tuples = [tuple(x) for x in df.to_numpy()]
                 psycopg2.extras.execute_values(cur, query, tuples)
 
-                if incremental and 'transaction_ts' in df.columns:
+                # Update watermark in the SAME transaction
+                if incremental and not df.empty:
                     max_ts = df['transaction_ts'].max()
-                    update_watermark(table_name, max_ts, len(df))
+                    watermark.update_watermark(
+                        table_name=table_name,
+                        last_ts=max_ts,
+                        rows_loaded=len(df),
+                        cur=cur
+                    )
 
-                logger.info(f"Loaded {len(df)} rows into {table_name}")
+                logger.info(f"Successfully loaded {len(df)} rows into {table_name}")
+
+        conn.commit()
 
     except Exception as e:
-        logger.error(f"Failed to load {table_name}: {e}")
+        logger.error(f"Failed to load data into {table_name}: {e}")
         raise
 
 

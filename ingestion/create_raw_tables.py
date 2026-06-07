@@ -1,33 +1,14 @@
-import psycopg2
 from dotenv import load_dotenv
-import os
+from .db_utils import get_db_connection
 import logging
 
-load_dotenv()
+load_dotenv()  
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-
-def get_db_connection():
-    required_vars = ["POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", 
-                     "POSTGRES_USER", "POSTGRES_PASSWORD"]
-    
-    for var in required_vars:
-        if not os.getenv(var):
-            raise ValueError(f"Missing required environment variable: {var}")
-
-    return psycopg2.connect(
-        host=os.getenv("POSTGRES_HOST"),
-        port=os.getenv("POSTGRES_PORT"),
-        dbname=os.getenv("POSTGRES_DB"),
-        user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD"),
-        connect_timeout=10
-    )
 
 
 def create_raw_tables():
@@ -81,7 +62,7 @@ def create_raw_tables():
                     );
                 """)
 
-                # Indexes
+                # Indexes for performance
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON raw.transactions(user_id);")
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_transactions_merchant_id ON raw.transactions(merchant_id);")
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_transactions_ts ON raw.transactions(transaction_ts);")
@@ -102,7 +83,6 @@ def create_raw_tables():
     except Exception as e:
         logger.error(f"Failed to create raw tables: {e}")
         raise
-
 
 if __name__ == "__main__":
     create_raw_tables()

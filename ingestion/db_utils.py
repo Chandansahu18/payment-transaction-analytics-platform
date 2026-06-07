@@ -14,10 +14,7 @@ logger = logging.getLogger(__name__)
 
 @contextmanager
 def get_db_connection():
-    """
-    Context manager for PostgreSQL database connections.
-    Ensures proper commit, rollback, and connection closing.
-    """
+    
     required_vars = [
         "POSTGRES_HOST", 
         "POSTGRES_PORT", 

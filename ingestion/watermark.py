@@ -18,7 +18,7 @@ def get_watermark(table_name: str) -> Optional[datetime]:
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT last_loaded_ts 
-                FROM raw._watermark 
+                FROM raw.watermark 
                 WHERE table_name = %s
             """, (table_name,))
             result = cur.fetchone()
@@ -33,7 +33,7 @@ def update_watermark(
     if cur:
         # Use existing cursor
         cur.execute("""
-            INSERT INTO raw._watermark (table_name, last_loaded_ts, rows_loaded, updated_at)
+            INSERT INTO raw.watermark (table_name, last_loaded_ts, rows_loaded, updated_at)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT (table_name) 
             DO UPDATE SET 
@@ -46,7 +46,7 @@ def update_watermark(
         with get_db_connection() as conn:
             with conn.cursor() as new_cur:
                 new_cur.execute("""
-                    INSERT INTO raw._watermark (table_name, last_loaded_ts, rows_loaded, updated_at)
+                    INSERT INTO raw.watermark (table_name, last_loaded_ts, rows_loaded, updated_at)
                     VALUES (%s, %s, %s, %s)
                     ON CONFLICT (table_name) 
                     DO UPDATE SET 

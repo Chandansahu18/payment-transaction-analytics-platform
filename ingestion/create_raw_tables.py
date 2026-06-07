@@ -53,7 +53,7 @@ def create_raw_tables():
                         amount NUMERIC(12,2),
                         currency VARCHAR(5) DEFAULT 'INR',
                         status VARCHAR(20),
-                        is_fraud_flag BOOLEAN,
+                        is_fraud BOOLEAN,
                         device_type VARCHAR(20),
                         city VARCHAR(50),
                         state VARCHAR(50),
@@ -70,7 +70,7 @@ def create_raw_tables():
 
                 # Watermark Table
                 cur.execute("""
-                    CREATE TABLE IF NOT EXISTS raw._watermark (
+                    CREATE TABLE IF NOT EXISTS raw.watermark (
                         table_name VARCHAR(50) PRIMARY KEY,
                         last_loaded_ts TIMESTAMP,
                         rows_loaded INT,

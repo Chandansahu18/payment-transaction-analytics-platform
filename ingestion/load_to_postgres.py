@@ -37,8 +37,7 @@ def load_data_to_postgres(
 
             last_ts = watermark.get_watermark(table_name)
             if last_ts:
-                # Use >= for safe inclusive boundary
-                df = df[df['transaction_ts'] >= last_ts]
+                df = df[df['transaction_ts'] > last_ts]
                 logger.info(f"Filtered to {len(df)} new records since last load")
 
             if df.empty:

@@ -89,8 +89,8 @@ def load_data_to_postgres(
 if __name__ == "__main__":
     logger.info("Starting data ingestion into PostgreSQL...")
 
-    load_data_to_postgres('data/raw/users.csv', 'raw.users')
-    load_data_to_postgres('data/raw/merchants.csv', 'raw.merchants')
+    load_data_to_postgres('data/raw/users.csv', 'raw.users', conflict_column='user_id')
+    load_data_to_postgres('data/raw/merchants.csv', 'raw.merchants', conflict_column='merchant_id')
 
     load_data_to_postgres(
         csv_path='data/raw/transactions.csv',

@@ -27,15 +27,16 @@ def load_data_to_postgres(
         df = pd.read_csv(csv_path)
         logger.info(f"Loaded {len(df)} rows from {csv_path}")
 
-        if incremental and 'transaction_ts' not in df.columns:
-            raise ValueError(
-                f"'transaction_ts' column is required when incremental=True for table {table_name}"
-            )
-
         if incremental:
+            df['transaction_ts'] = pd.to_datetime(df['transaction_ts'])
+
+            if 'transaction_ts' not in df.columns:
+                raise ValueError(
+                    f"'transaction_ts' column is required when incremental=True for table {table_name}"
+                )
+
             last_ts = watermark.get_watermark(table_name)
             if last_ts:
-                df['transaction_ts'] = pd.to_datetime(df['transaction_ts'])
                 df = df[df['transaction_ts'] > last_ts]
                 logger.info(f"Filtered to {len(df)} new records since last load")
 
@@ -46,7 +47,6 @@ def load_data_to_postgres(
         conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
-
                 columns = [psycopg2.sql.Identifier(col) for col in df.columns]
                 cols_sql = psycopg2.sql.SQL(', ').join(columns)
 
@@ -85,7 +85,6 @@ def load_data_to_postgres(
     except Exception as e:
         logger.error(f"Failed to load data into {table_name}: {e}")
         raise
-
 
 if __name__ == "__main__":
     logger.info("Starting data ingestion into PostgreSQL...")

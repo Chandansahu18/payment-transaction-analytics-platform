@@ -17,12 +17,20 @@ logger = logging.getLogger(__name__)
 
 
 def get_db_connection():
+    required_vars = ["POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", 
+                     "POSTGRES_USER", "POSTGRES_PASSWORD"]
+    
+    for var in required_vars:
+        if not os.getenv(var):
+            raise ValueError(f"Missing required environment variable: {var}")
+
     return psycopg2.connect(
         host=os.getenv("POSTGRES_HOST"),
         port=os.getenv("POSTGRES_PORT"),
         dbname=os.getenv("POSTGRES_DB"),
         user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD")
+        password=os.getenv("POSTGRES_PASSWORD"),
+        connect_timeout=10
     )
 
 
@@ -69,7 +77,7 @@ def load_data_to_postgres(
 
 
 if __name__ == "__main__":
-    logger.info("Starting data ingestion...")
+    logger.info("Starting data ingestion into PostgreSQL...")
 
     load_data_to_postgres('data/raw/users.csv', 'raw.users')
     load_data_to_postgres('data/raw/merchants.csv', 'raw.merchants')

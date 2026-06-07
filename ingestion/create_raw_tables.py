@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_db_connection():
-    """Create database connection with validation and timeout"""
     required_vars = ["POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", 
                      "POSTGRES_USER", "POSTGRES_PASSWORD"]
     
@@ -62,7 +61,7 @@ def create_raw_tables():
                     );
                 """)
 
-                # Transactions Table (with Foreign Keys)
+                # Transactions Table
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS raw.transactions (
                         transaction_id UUID PRIMARY KEY,
@@ -82,7 +81,7 @@ def create_raw_tables():
                     );
                 """)
 
-                # Indexes for analytics performance
+                # Indexes
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON raw.transactions(user_id);")
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_transactions_merchant_id ON raw.transactions(merchant_id);")
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_transactions_ts ON raw.transactions(transaction_ts);")

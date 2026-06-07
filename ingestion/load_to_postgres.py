@@ -28,12 +28,11 @@ def load_data_to_postgres(
         logger.info(f"Loaded {len(df)} rows from {csv_path}")
 
         if incremental:
-            df['transaction_ts'] = pd.to_datetime(df['transaction_ts'])
-
             if 'transaction_ts' not in df.columns:
                 raise ValueError(
                     f"'transaction_ts' column is required when incremental=True for table {table_name}"
                 )
+            df['transaction_ts'] = pd.to_datetime(df['transaction_ts'])
 
             last_ts = watermark.get_watermark(table_name)
             if last_ts:
@@ -79,8 +78,6 @@ def load_data_to_postgres(
                     )
 
                 logger.info(f"Successfully loaded {len(df)} rows into {table_name}")
-
-        conn.commit()
 
     except Exception as e:
         logger.error(f"Failed to load data into {table_name}: {e}")

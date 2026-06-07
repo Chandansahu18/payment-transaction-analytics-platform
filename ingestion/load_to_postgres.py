@@ -16,7 +16,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 def load_data_to_postgres(
     csv_path: str, 
     table_name: str, 
@@ -32,19 +31,21 @@ def load_data_to_postgres(
                 raise ValueError(
                     f"'transaction_ts' column is required when incremental=True for table {table_name}"
                 )
+
+            # Normalize timestamp early
             df['transaction_ts'] = pd.to_datetime(df['transaction_ts'])
 
             last_ts = watermark.get_watermark(table_name)
             if last_ts:
-                df = df[df['transaction_ts'] > last_ts]
+                # Use >= for safe inclusive boundary
+                df = df[df['transaction_ts'] >= last_ts]
                 logger.info(f"Filtered to {len(df)} new records since last load")
 
             if df.empty:
                 logger.info(f"No new data to load for {table_name}")
                 return
 
-        conn = get_db_connection()
-        with conn:
+        with get_db_connection() as conn:
             with conn.cursor() as cur:
                 columns = [psycopg2.sql.Identifier(col) for col in df.columns]
                 cols_sql = psycopg2.sql.SQL(', ').join(columns)

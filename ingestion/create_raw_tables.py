@@ -13,12 +13,21 @@ logger = logging.getLogger(__name__)
 
 
 def get_db_connection():
+    """Create database connection with validation and timeout"""
+    required_vars = ["POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", 
+                     "POSTGRES_USER", "POSTGRES_PASSWORD"]
+    
+    for var in required_vars:
+        if not os.getenv(var):
+            raise ValueError(f"Missing required environment variable: {var}")
+
     return psycopg2.connect(
         host=os.getenv("POSTGRES_HOST"),
         port=os.getenv("POSTGRES_PORT"),
         dbname=os.getenv("POSTGRES_DB"),
         user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD")
+        password=os.getenv("POSTGRES_PASSWORD"),
+        connect_timeout=10
     )
 
 
@@ -26,6 +35,7 @@ def create_raw_tables():
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
+                # Create schema
                 cur.execute("CREATE SCHEMA IF NOT EXISTS raw;")
 
                 # Users Table
@@ -52,12 +62,12 @@ def create_raw_tables():
                     );
                 """)
 
-                # Transactions Table
+                # Transactions Table (with Foreign Keys)
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS raw.transactions (
                         transaction_id UUID PRIMARY KEY,
-                        user_id VARCHAR(20) NOT NULL,
-                        merchant_id VARCHAR(20) NOT NULL,
+                        user_id VARCHAR(20) NOT NULL REFERENCES raw.users(user_id),
+                        merchant_id VARCHAR(20) NOT NULL REFERENCES raw.merchants(merchant_id),
                         merchant_category VARCHAR(30),
                         payment_method VARCHAR(20),
                         amount NUMERIC(12,2),
@@ -72,6 +82,12 @@ def create_raw_tables():
                     );
                 """)
 
+                # Indexes for analytics performance
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON raw.transactions(user_id);")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_transactions_merchant_id ON raw.transactions(merchant_id);")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_transactions_ts ON raw.transactions(transaction_ts);")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_transactions_status ON raw.transactions(status);")
+
                 # Watermark Table
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS raw._watermark (
@@ -82,7 +98,7 @@ def create_raw_tables():
                     );
                 """)
 
-        logger.info("Raw tables and watermark table created successfully!")
+        logger.info("Raw tables, indexes, and watermark table created successfully!")
 
     except Exception as e:
         logger.error(f"Failed to create raw tables: {e}")

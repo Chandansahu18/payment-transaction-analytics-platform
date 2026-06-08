@@ -17,6 +17,10 @@ clean-targets:
 
 vars:
   fraud_score_threshold: 0.7
+  odd_hour_start: 1
+  odd_hour_end: 5
+  high_amount_threshold: 25000
+  risky_merchant_categories: ['Travel', 'Electronics']
 
 models:
   payment_dbt:

@@ -18,13 +18,15 @@ models:
         description: Composite risk score (0-100) based on 5 fraud indicators
         tests:
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 100
+              arguments:
+                min_value: 0
+                max_value: 100
       - name: fraud_risk_level
         description: Categorical risk level (low/medium/high/critical)
         tests:
           - accepted_values:
-              values: ['low', 'medium', 'high', 'critical']
+              arguments:
+                values: ['low', 'medium', 'high', 'critical']
       - name: tx_count_1h
         description: Number of transactions by same user in the last 1 hour
         tests: [not_null]
@@ -35,12 +37,14 @@ models:
         description: True if tx_count_1h >= fraud_velocity_threshold_1h
         tests:
           - accepted_values:
-              values: [true, false]
+              arguments:
+                values: [true, false]
       - name: is_velocity_spike_24h
         description: True if tx_count_24h >= fraud_velocity_threshold_24h
         tests:
           - accepted_values:
-              values: [true, false]
+              arguments:
+                values: [true, false]
 
   - name: int_user_metrics
     description: User-level aggregate metrics computed from the enriched transaction set

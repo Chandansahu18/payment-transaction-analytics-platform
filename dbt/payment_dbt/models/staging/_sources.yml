@@ -28,13 +28,15 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  values: ['Electronics', 'Entertainment', 'Fashion', 'Food & Beverage', 'Groceries', 'Healthcare', 'Retail', 'Travel']
+                  arguments:
+                    values: ['Electronics', 'Entertainment', 'Fashion', 'Food & Beverage', 'Groceries', 'Healthcare', 'Retail', 'Travel']
           - name: payment_method
             description: Payment instrument used
             tests:
               - not_null
               - accepted_values:
-                  values: ['UPI', 'Credit Card', 'Debit Card', 'NetBanking', 'Wallet']
+                  arguments:
+                    values: ['UPI', 'Credit Card', 'Debit Card', 'NetBanking', 'Wallet']
           - name: amount
             description: Transaction amount in INR
             tests: [not_null]
@@ -43,25 +45,29 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  values: ['INR']
+                  arguments:
+                    values: ['INR']
           - name: status
             description: Final transaction status
             tests:
               - not_null
               - accepted_values:
-                  values: ['success', 'failed', 'declined', 'disputed']
+                  arguments:
+                    values: ['success', 'failed', 'declined', 'disputed']
           - name: is_fraud
             description: Ground truth fraud label from synthetic data generation
             tests:
               - not_null
               - accepted_values:
-                  values: [true, false]
+                  arguments:
+                    values: [true, false]
           - name: device_type
             description: Device category used for the transaction
             tests:
               - not_null
               - accepted_values:
-                  values: ['mobile', 'desktop', 'POS']
+                  arguments:
+                    values: ['mobile', 'desktop', 'POS']
           - name: city
             description: City where the transaction originated
           - name: state

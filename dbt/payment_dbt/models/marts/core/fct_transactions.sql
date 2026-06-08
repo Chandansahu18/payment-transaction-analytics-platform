@@ -29,7 +29,7 @@ fact as (
         enriched.city,
         enriched.state,
         enriched.transaction_ts,
-        enriched.created_at
+        enriched.raw_loaded_at
     from enriched
     left join dim_users on enriched.user_id = dim_users.user_id
     left join dim_merchants on enriched.merchant_id = dim_merchants.merchant_id

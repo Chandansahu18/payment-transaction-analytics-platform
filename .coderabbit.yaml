@@ -4,5 +4,5 @@ reviews:
     base_branches:
       - main
       - dev
-      - 'phase/**'
+      - 'phase/.*'
      

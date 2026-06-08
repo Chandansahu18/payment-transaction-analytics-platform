@@ -1,0 +1,35 @@
+name: payment_dbt
+profile: payment_dbt
+config-version: 2
+version: 1.0.0
+
+model-paths: [models]
+analysis-paths: [analyses]
+test-paths: [tests]
+seed-paths: [seeds]
+macro-paths: [macros]
+snapshot-paths: [snapshots]
+
+target-path: target
+clean-targets:
+  - target
+  - dbt_packages
+
+vars:
+  fraud_score_threshold: 0.7
+
+models:
+  payment_dbt:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: table
+      +schema: intermediate
+    marts:
+      core:
+        +materialized: table
+        +schema: marts_core
+      analytics:
+        +materialized: table
+        +schema: marts_analytics

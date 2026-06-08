@@ -99,7 +99,7 @@ def generate_transactions(users_df, merchants_df, n=400000):
             'amount': amount,
             'currency': 'INR',
             'status': status,
-            'is_fraud_flag': is_fraud,
+            'is_fraud': is_fraud,
             'device_type': random.choice(DEVICE_TYPES),
             'city': city,
             'state': CITY_STATE_MAP[city],
@@ -129,4 +129,4 @@ if __name__ == '__main__':
     print(f"Transactions : {len(transactions):,}")
     print(f"Users        : {len(users):,}")
     print(f"Merchants    : {len(merchants):,}")
-    print(f"Fraud Rate   : {transactions['is_fraud_flag'].mean()*100:.2f}%")
+    print(f"Fraud Rate   : {transactions['is_fraud'].mean()*100:.2f}%")

@@ -1,0 +1,81 @@
+version: 2
+
+models:
+  - name: stg_transactions
+    description: >
+      Cleaned and standardized transaction data with derived analytical fields.
+      Adds boolean feature flags for fraud detection: odd hour, high amount, risky category.
+    columns:
+      - name: transaction_id
+        description: Unique transaction identifier
+        tests: [unique, not_null]
+      - name: user_id
+        description: Reference to the user
+        tests: [not_null]
+      - name: merchant_id
+        description: Reference to the merchant
+        tests: [not_null]
+      - name: merchant_category
+        description: Business category of the merchant
+        tests: [not_null]
+      - name: payment_method
+        description: Payment method used
+        tests: [not_null]
+      - name: amount
+        description: Transaction amount in INR
+        tests: [not_null]
+      - name: currency
+        description: Currency code
+        tests: [not_null]
+      - name: status
+        description: Transaction status
+        tests: [not_null]
+      - name: is_fraud
+        description: Ground truth fraud label
+        tests: [not_null]
+      - name: device_type
+        description: Device category
+      - name: city
+        description: City of transaction origin
+      - name: state
+        description: State of transaction origin
+      - name: transaction_ts
+        description: Original transaction timestamp
+        tests: [not_null]
+      - name: raw_loaded_at
+        description: Timestamp when raw record was ingested
+      - name: transaction_date
+        description: Transaction date (cast from transaction_ts)
+        tests: [not_null]
+      - name: tx_hour
+        description: Hour of day extracted from timestamp (0-23)
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 23
+      - name: tx_day_of_week
+        description: Day of week (0=Sunday, 6=Saturday)
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 6
+      - name: is_odd_hour
+        description: Flag indicating transaction between 1-5 AM
+        tests:
+          - accepted_values:
+              arguments:
+                values: [true, false]
+      - name: is_high_amount
+        description: Flag indicating amount >= high_amount_threshold (25000)
+        tests:
+          - accepted_values:
+              arguments:
+                values: [true, false]
+      - name: is_risky_merchant_category
+        description: Flag for high-risk merchant categories
+        tests:
+          - accepted_values:
+              arguments:
+                values: [true, false]

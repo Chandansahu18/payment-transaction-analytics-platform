@@ -56,10 +56,15 @@ def load_data_to_postgres(
                 else:
                     conflict_sql = psycopg2.sql.SQL("")
 
+                table_parts = [
+                    psycopg2.sql.Identifier(part) for part in table_name.split('.')
+                ]
+                table_identifier = psycopg2.sql.SQL('.').join(table_parts)
+
                 query = psycopg2.sql.SQL(
                     "INSERT INTO {} ({}) VALUES %s {}"
                 ).format(
-                    psycopg2.sql.Identifier(table_name),
+                    table_identifier,
                     cols_sql,
                     conflict_sql
                 )

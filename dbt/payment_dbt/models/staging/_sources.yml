@@ -1,0 +1,117 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Raw payment transaction data loaded via Python ingestion pipeline (Phase 2).
+      Contains synthetic data with realistic fraud patterns (~2.5% fraud rate)
+      for the Indian market context.
+    database: "{{ env_var('POSTGRES_DB', 'payment_transaction_warehouse') }}"
+    schema: raw
+    loader: python_ingestion
+
+    tables:
+      - name: transactions
+        description: Core raw payment transactions — one row per transaction with ground truth fraud label
+        columns:
+          - name: transaction_id
+            description: Unique transaction identifier (UUID)
+            tests: [unique, not_null]
+          - name: user_id
+            description: Reference to the user who initiated the transaction
+            tests: [not_null]
+          - name: merchant_id
+            description: Reference to the merchant
+            tests: [not_null]
+          - name: merchant_category
+            description: Business category of the merchant
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['Electronics', 'Entertainment', 'Fashion', 'Food & Beverage', 'Groceries', 'Healthcare', 'Retail', 'Travel']
+          - name: payment_method
+            description: Payment instrument used
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['UPI', 'Credit Card', 'Debit Card', 'NetBanking', 'Wallet']
+          - name: amount
+            description: Transaction amount in INR
+            tests: [not_null]
+          - name: currency
+            description: Currency code (always INR for this dataset)
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['INR']
+          - name: status
+            description: Final transaction status
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['success', 'failed', 'declined', 'disputed']
+          - name: is_fraud
+            description: Ground truth fraud label from synthetic data generation
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: [true, false]
+          - name: device_type
+            description: Device category used for the transaction
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['mobile', 'desktop', 'POS']
+          - name: city
+            description: City where the transaction originated
+          - name: state
+            description: State where the transaction originated
+          - name: transaction_ts
+            description: Timestamp of the transaction
+            tests: [not_null]
+          - name: created_at
+            description: Timestamp when the record was inserted into the raw layer
+
+      - name: users
+        description: Raw user profile data — one row per user account
+        columns:
+          - name: user_id
+            description: Unique user identifier
+            tests: [unique, not_null]
+          - name: age_group
+            description: Age bucket (18-25, 26-35, 36-50, 50+)
+            tests: [not_null]
+          - name: account_type
+            description: Type of bank account (savings, current, premium)
+            tests: [not_null]
+          - name: registration_date
+            description: Date the user registered on the platform
+          - name: city
+            description: User's registered city
+          - name: state
+            description: User's registered state
+
+      - name: merchants
+        description: Raw merchant profile data — one row per merchant
+        columns:
+          - name: merchant_id
+            description: Unique merchant identifier
+            tests: [unique, not_null]
+          - name: merchant_name
+            description: Registered business name
+            tests: [not_null]
+          - name: merchant_category
+            description: Business category
+            tests: [not_null]
+          - name: city
+            description: Merchant's registered city
+          - name: state
+            description: Merchant's registered state
+          - name: onboarding_date
+            description: Date the merchant was onboarded

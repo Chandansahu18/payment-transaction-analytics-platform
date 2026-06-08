@@ -7,7 +7,7 @@ WITH rfm_base AS (
         SUM(CASE WHEN f.is_fraud THEN 1 ELSE 0 END) AS fraud_count,
         COUNT(DISTINCT f.merchant_category) AS category_diversity
     FROM fct_transactions f
-    LEFT JOIN dim_users u ON f.user_sk = u.user_sk
+    INNER JOIN dim_users u ON f.user_sk = u.user_sk
     GROUP BY u.user_id
 )
 
@@ -40,7 +40,7 @@ SELECT
 
     CASE
         WHEN fraud_count >= 3 THEN 'Repeat Fraudster'
-        WHEN fraud_count = 1 THEN 'Single Fraud'
+        WHEN fraud_count >= 1 THEN 'Single Fraud'
         ELSE 'Clean'
     END AS fraud_segment
 

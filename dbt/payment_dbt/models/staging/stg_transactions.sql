@@ -9,7 +9,7 @@ cleaned as (
         merchant_id,
         merchant_category,
         payment_method,
-        amount as amount_inr,
+        amount,
         currency,
         status,
         is_fraud,

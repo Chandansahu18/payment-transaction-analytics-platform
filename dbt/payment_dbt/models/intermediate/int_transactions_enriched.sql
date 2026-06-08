@@ -29,20 +29,6 @@ with_flags as (
         v.tx_count_1h,
         v.tx_count_24h,
         v.tx_same_category_24h,
-        case
-            when extract(hour from b.transaction_ts)
-                between {{ var('odd_hour_start', 1) }}
-                and {{ var('odd_hour_end', 5) }}
-            then true else false
-        end as is_odd_hour,
-        case
-            when b.amount >= {{ var('high_amount_threshold', 25000) }}
-            then true else false
-        end as is_high_amount,
-        case
-            when b.merchant_category in ('Travel', 'Electronics')
-            then true else false
-        end as is_risky_merchant_category,
         v.tx_count_1h >= {{ var('fraud_velocity_threshold_1h', 5) }} as is_velocity_spike_1h,
         v.tx_count_24h >= {{ var('fraud_velocity_threshold_24h', 15) }} as is_velocity_spike_24h
     from base b

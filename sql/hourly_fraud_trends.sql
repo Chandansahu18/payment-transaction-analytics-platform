@@ -1,11 +1,3 @@
-WITH base AS (
-    SELECT
-        *,
-        EXTRACT(HOUR FROM transaction_ts) AS tx_hour,
-        CASE WHEN EXTRACT(HOUR FROM transaction_ts) BETWEEN 1 AND 5 THEN 1 ELSE 0 END AS is_odd_hour
-    FROM fct_transactions
-)
-
 SELECT
     tx_hour,
     merchant_category,
@@ -22,12 +14,12 @@ SELECT
     ROUND(AVG(amount), 2) AS avg_transaction_amount,
     ROUND(AVG(fraud_risk_score), 2) AS avg_fraud_risk_score,
 
-    COUNT(DISTINCT user_sk) AS unique_users,
-    SUM(is_odd_hour) AS odd_hour_transactions,
+    COUNT(DISTINCT user_id) AS unique_users,
+    SUM(CASE WHEN is_odd_hour THEN 1 ELSE 0 END) AS odd_hour_transactions,
 
     CURRENT_TIMESTAMP AS view_generated_at
 
-FROM base
+FROM int_transactions_enriched
 GROUP BY
     tx_hour,
     merchant_category,

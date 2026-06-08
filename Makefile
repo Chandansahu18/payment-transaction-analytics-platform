@@ -50,8 +50,15 @@ build:
 docs:
 	cd $(DBT_DIR) && $(DBT) docs generate
 
+serve: docs
+	cd $(DBT_DIR) && $(DBT) docs serve
+
 seed:
-	test -d $(DBT_DIR)/seeds && cd $(DBT_DIR) && $(DBT) seed || echo "No seeds directory found"
+	@if [ -d "$(DBT_DIR)/seeds" ]; then \
+		cd "$(DBT_DIR)" && $(DBT) seed; \
+	else \
+		echo "No seeds directory found"; \
+	fi
 
 clean:
 	rm -rf $(DBT_DIR)/target $(DBT_DIR)/dbt_packages $(DBT_DIR)/logs

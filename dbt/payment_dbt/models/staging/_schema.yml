@@ -21,8 +21,8 @@ models:
       - name: payment_method
         description: Payment method used
         tests: [not_null]
-      - name: amount_inr
-        description: Transaction amount in INR (aliased from raw.amount)
+      - name: amount
+        description: Transaction amount in INR
         tests: [not_null]
       - name: currency
         description: Currency code

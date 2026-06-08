@@ -6,7 +6,7 @@ with built-in fraud risk scoring.
 
 ## Project Structure
 
-```
+```text
 dbt/payment_dbt/
 ├── dbt_project.yml          
 ├── profiles.yml            
@@ -95,5 +95,5 @@ dbt docs generate --no-compile
 | `POSTGRES_PORT` | `5432` | Database port |
 | `POSTGRES_DB` | `payment_transaction_warehouse` | Database name |
 | `POSTGRES_USER` | `postgres` | Database user |
-| `POSTGRES_PASSWORD` | `your_strong_password_here` | Database password |
+| `POSTGRES_PASSWORD` | *(required)* | Database password |
 | `DBT_SCHEMA` | `public` | Target schema override |

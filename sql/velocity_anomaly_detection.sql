@@ -17,20 +17,18 @@ SELECT
     is_fraud,
 
     CASE
-        WHEN tx_count_1h >= 3 THEN 'High Velocity (1 Hour)'
-        WHEN tx_count_24h >= 5 THEN 'High Velocity (24 Hours)'
-        ELSE 'Normal Velocity'
+        WHEN tx_count_1h >= 5 THEN 'High Velocity (1 Hour)'
+        WHEN tx_count_24h >= 15 THEN 'High Velocity (24 Hours)'
     END AS velocity_status,
 
     CASE
-        WHEN tx_count_1h >= 3 AND tx_count_24h >= 5 THEN 'Critical Velocity Breach'
-        WHEN tx_count_1h >= 3 OR tx_count_24h >= 5 THEN 'Velocity Breach'
-        ELSE 'Normal'
+        WHEN tx_count_1h >= 5 AND tx_count_24h >= 15 THEN 'Critical Velocity Breach'
+        WHEN tx_count_1h >= 5 OR tx_count_24h >= 15 THEN 'Velocity Breach'
     END AS velocity_alert_level,
 
     CURRENT_TIMESTAMP AS view_generated_at
 
 FROM int_transactions_enriched
-WHERE tx_count_1h >= 3
-   OR tx_count_24h >= 5
+WHERE tx_count_1h >= 5
+   OR tx_count_24h >= 15
 ORDER BY transaction_ts DESC;

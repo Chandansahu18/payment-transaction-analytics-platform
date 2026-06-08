@@ -55,6 +55,7 @@ def generate_merchants(n=200):
 
 def build_transaction(user_id, merchant_ids, merchant_category_map, ts, is_fraud=None):
     merchant_id = random.choice(merchant_ids)
+    city = random.choice(INDIAN_CITIES)
     amount = round(random.uniform(30000, 60000), 2) if is_fraud else round(random.uniform(50, 25000), 2)
     return {
         'transaction_id': str(uuid.uuid4()),
@@ -67,8 +68,8 @@ def build_transaction(user_id, merchant_ids, merchant_category_map, ts, is_fraud
         'status': random.choice(STATUSES),
         'is_fraud': is_fraud if is_fraud is not None else False,
         'device_type': random.choice(DEVICE_TYPES),
-        'city': random.choice(INDIAN_CITIES),
-        'state': random.choice(list(CITY_STATE_MAP.values())),
+        'city': city,
+        'state': CITY_STATE_MAP[city],
         'transaction_ts': ts,
         'created_at': datetime.now()
     }

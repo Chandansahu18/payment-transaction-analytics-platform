@@ -24,7 +24,6 @@ DEVICE_TYPES = ['mobile', 'mobile', 'desktop', 'POS']
 AGE_GROUPS = ['18-25', '26-35', '36-50', '50+']
 ACCOUNT_TYPES = ['savings', 'current', 'premium']
 
-
 def generate_users(n=1000):
     users = []
     for _ in range(n):
@@ -38,7 +37,6 @@ def generate_users(n=1000):
             'state': CITY_STATE_MAP[city]
         })
     return pd.DataFrame(users)
-
 
 def generate_merchants(n=200):
     merchants = []
@@ -55,6 +53,62 @@ def generate_merchants(n=200):
         })
     return pd.DataFrame(merchants)
 
+def build_transaction(user_id, merchant_ids, merchant_category_map, ts, is_fraud=None):
+    merchant_id = random.choice(merchant_ids)
+    amount = round(random.uniform(30000, 60000), 2) if is_fraud else round(random.uniform(50, 25000), 2)
+    return {
+        'transaction_id': str(uuid.uuid4()),
+        'user_id': user_id,
+        'merchant_id': merchant_id,
+        'merchant_category': merchant_category_map[merchant_id],
+        'payment_method': random.choice(PAYMENT_METHODS),
+        'amount': amount,
+        'currency': 'INR',
+        'status': random.choice(STATUSES),
+        'is_fraud': is_fraud if is_fraud is not None else False,
+        'device_type': random.choice(DEVICE_TYPES),
+        'city': random.choice(INDIAN_CITIES),
+        'state': random.choice(list(CITY_STATE_MAP.values())),
+        'transaction_ts': ts,
+        'created_at': datetime.now()
+    }
+
+def generate_burst_transactions(burst_user_ids, merchant_ids, merchant_category_map, start, end, total_seconds):
+    transactions = []
+    for user_id in burst_user_ids:
+        # Type A: 6-8 tx within 1 hour
+        for _ in range(2):
+            base_ts = start + timedelta(seconds=random.randint(0, total_seconds))
+            count = random.randint(6, 8)
+            for _ in range(count):
+                ts = base_ts + timedelta(minutes=random.randint(0, 55))
+                if ts > end:
+                    break
+                transactions.append(build_transaction(user_id, merchant_ids, merchant_category_map, ts, is_fraud=random.random() < 0.3))
+
+        # Type B: 18-22 tx within 24 hours
+        base_ts = start + timedelta(seconds=random.randint(0, max(0, total_seconds - 86400)))
+        count = random.randint(18, 22)
+        for _ in range(count):
+            ts = base_ts + timedelta(hours=random.randint(0, 23), minutes=random.randint(0, 59))
+            if ts > end:
+                break
+            transactions.append(build_transaction(user_id, merchant_ids, merchant_category_map, ts, is_fraud=random.random() < 0.3))
+
+        # Type C: Combine 1h burst within 24h (triggers 'Both' + 'Critical')
+        base_ts = start + timedelta(seconds=random.randint(0, max(0, total_seconds - 86400)))
+        for _ in range(random.randint(6, 8)):
+            ts = base_ts + timedelta(minutes=random.randint(0, 55))
+            if ts > end:
+                break
+            transactions.append(build_transaction(user_id, merchant_ids, merchant_category_map, ts, is_fraud=random.random() < 0.35))
+        for _ in range(random.randint(10, 14)):
+            ts = base_ts + timedelta(hours=random.randint(1, 23), minutes=random.randint(0, 59))
+            if ts > end:
+                break
+            transactions.append(build_transaction(user_id, merchant_ids, merchant_category_map, ts, is_fraud=random.random() < 0.35))
+
+    return transactions
 
 def generate_transactions(users_df, merchants_df, n=400000):
     transactions = []
@@ -66,7 +120,11 @@ def generate_transactions(users_df, merchants_df, n=400000):
     end = datetime(2025, 6, 30)
     total_seconds = int((end - start).total_seconds())
 
-    for _ in range(n):
+    burst_user_ids = random.sample(user_ids, k=30)
+    transactions.extend(generate_burst_transactions(burst_user_ids, merchant_ids, merchant_category_map, start, end, total_seconds))
+
+    remaining = n - len(transactions)
+    for _ in range(remaining):
         merchant_id = random.choice(merchant_ids)
         merchant_category = merchant_category_map[merchant_id]
         status = random.choice(STATUSES)
@@ -108,7 +166,6 @@ def generate_transactions(users_df, merchants_df, n=400000):
         })
 
     return pd.DataFrame(transactions)
-
 
 if __name__ == '__main__':
     print("Generating synthetic payment data with realistic fraud patterns...")

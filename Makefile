@@ -2,6 +2,8 @@
 
 -include .env
 export POSTGRES_HOST POSTGRES_PORT POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD DBT_SCHEMA
+PGPASSWORD := $(POSTGRES_PASSWORD)
+export PGPASSWORD
 
 ifeq ($(OS),Windows_NT)
     VENV_BIN := .venv/Scripts
@@ -11,7 +13,7 @@ endif
 DBT_DIR  := dbt/payment_dbt
 DBT      := "$(CURDIR)/$(VENV_BIN)/dbt"
 
-.PHONY: help compile run test build docs clean deps seed all
+.PHONY: help compile run test build docs clean deps seed all debug list setup-db
 
 help:
 	@echo "Usage: make <target> [SELECT=<dbt_select>]"
@@ -26,11 +28,25 @@ help:
 	@echo "  seed          Load seed data"
 	@echo "  clean         Drop target artifacts"
 	@echo "  all           Full pipeline: deps -> seed -> build -> docs"
+	@echo "  debug         Debug dbt connection and configuration"
+	@echo "  list          List dbt models (use SELECT= to filter)"
+	@echo "  setup-db      Set database search_path for analytics queries"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make compile"
 	@echo "  make run SELECT=stg_transactions"
 	@echo "  make build"
+
+debug:
+	cd $(DBT_DIR) && $(DBT) debug
+
+list:
+	cd $(DBT_DIR) && $(DBT) ls $(if $(SELECT),--select $(SELECT))
+
+setup-db:
+	cd $(DBT_DIR) && $(DBT) source snapshot-freshness && \
+	psql -h $(POSTGRES_HOST) -p $(POSTGRES_PORT) -U $(POSTGRES_USER) -d $(POSTGRES_DB) \
+	-c "ALTER ROLE $(POSTGRES_USER) SET search_path TO staging, intermediate, marts, public;"
 
 deps:
 	cd $(DBT_DIR) && $(DBT) deps
@@ -63,4 +79,4 @@ seed:
 clean:
 	rm -rf $(DBT_DIR)/target $(DBT_DIR)/dbt_packages $(DBT_DIR)/logs
 
-all: deps seed build docs
+all: deps seed build docs setup-db

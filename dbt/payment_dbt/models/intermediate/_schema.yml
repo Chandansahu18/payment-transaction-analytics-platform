@@ -1,0 +1,82 @@
+version: 2
+
+models:
+  - name: int_transactions_enriched
+    description: >
+      Core fraud intelligence layer. Enriches staging data with velocity counts
+      (1h and 24h windows), computes a composite fraud risk score (0-100),
+      assigns a risk level (low/medium/high/critical), and generates a human-readable
+      fraud reason string explaining which risk factors were triggered.
+    columns:
+      - name: transaction_sk
+        description: Surrogate key for the transaction fact table
+        tests: [unique, not_null]
+      - name: transaction_id
+        description: Unique transaction identifier
+        tests: [unique, not_null]
+      - name: fraud_risk_score
+        description: Composite risk score (0-100) based on 5 fraud indicators
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+      - name: fraud_risk_level
+        description: Categorical risk level (low/medium/high/critical)
+        tests:
+          - accepted_values:
+              values: ['low', 'medium', 'high', 'critical']
+      - name: tx_count_1h
+        description: Number of transactions by same user in the last 1 hour
+        tests: [not_null]
+      - name: tx_count_24h
+        description: Number of transactions by same user in the last 24 hours
+        tests: [not_null]
+      - name: is_velocity_spike_1h
+        description: True if tx_count_1h >= fraud_velocity_threshold_1h
+        tests:
+          - accepted_values:
+              values: [true, false]
+      - name: is_velocity_spike_24h
+        description: True if tx_count_24h >= fraud_velocity_threshold_24h
+        tests:
+          - accepted_values:
+              values: [true, false]
+
+  - name: int_user_metrics
+    description: User-level aggregate metrics computed from the enriched transaction set
+    columns:
+      - name: user_sk
+        description: Surrogate key for the user dimension
+        tests: [unique, not_null]
+      - name: user_id
+        description: Unique user identifier
+        tests: [unique, not_null]
+      - name: total_transactions
+        description: Total transactions by this user
+        tests: [not_null]
+      - name: avg_transaction_amount
+        description: Average transaction amount for this user
+        tests: [not_null]
+      - name: total_spend
+        description: Total amount spent by this user
+        tests: [not_null]
+      - name: fraud_count
+        description: Number of fraudulent transactions by this user
+        tests: [not_null]
+      - name: first_transaction_date
+        description: Timestamp of the user's first transaction
+        tests: [not_null]
+      - name: last_transaction_date
+        description: Timestamp of the user's most recent transaction
+        tests: [not_null]
+      - name: unique_categories_used
+        description: Number of distinct merchant categories the user transacted in
+        tests: [not_null]
+      - name: unique_merchants_used
+        description: Number of distinct merchants the user transacted with
+        tests: [not_null]
+      - name: odd_hour_tx_count
+        description: Number of odd-hour transactions (1-5 AM) by this user
+        tests: [not_null]
+      - name: max_fraud_risk_score
+        description: Highest fraud risk score across all user transactions

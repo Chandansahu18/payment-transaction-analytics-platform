@@ -17,6 +17,7 @@ SELECT
     is_fraud,
 
     CASE
+        WHEN tx_count_1h >= 5 AND tx_count_24h >= 15 THEN 'High Velocity (Both)'
         WHEN tx_count_1h >= 5 THEN 'High Velocity (1 Hour)'
         WHEN tx_count_24h >= 15 THEN 'High Velocity (24 Hours)'
     END AS velocity_status,

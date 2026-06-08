@@ -11,7 +11,11 @@ user_monthly_activity AS (
         uc.user_id,
         uc.cohort_month,
         DATE_TRUNC('month', t.transaction_ts) AS activity_month,
-        DATE_PART('month', AGE(DATE_TRUNC('month', t.transaction_ts), uc.cohort_month)) AS month_offset,
+        (
+            EXTRACT(YEAR FROM DATE_TRUNC('month', t.transaction_ts))::int - EXTRACT(YEAR FROM uc.cohort_month)::int
+        ) * 12 + (
+            EXTRACT(MONTH FROM DATE_TRUNC('month', t.transaction_ts))::int - EXTRACT(MONTH FROM uc.cohort_month)::int
+        ) AS month_offset,
         t.transaction_id,
         t.amount,
         t.is_fraud,
@@ -42,7 +46,9 @@ SELECT
     ROUND(
         COUNT(DISTINCT CASE WHEN month_offset = 3 THEN user_id END) * 100.0 /
         NULLIF(COUNT(DISTINCT user_id), 0), 1
-    ) AS retention_3m_pct
+    ) AS retention_3m_pct,
+
+    CURRENT_TIMESTAMP AS view_generated_at
 
 FROM user_monthly_activity
 GROUP BY cohort_month

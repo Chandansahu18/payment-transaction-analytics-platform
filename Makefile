@@ -1,9 +1,13 @@
 .DEFAULT_GOAL := help
 
-include .env
-export
+-include .env
+export POSTGRES_HOST POSTGRES_PORT POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD DBT_SCHEMA
 
-VENV_BIN := .venv/Scripts
+ifeq ($(OS),Windows_NT)
+    VENV_BIN := .venv/Scripts
+else
+    VENV_BIN := .venv/bin
+endif
 DBT_DIR  := dbt/payment_dbt
 DBT      := "$(CURDIR)/$(VENV_BIN)/dbt"
 

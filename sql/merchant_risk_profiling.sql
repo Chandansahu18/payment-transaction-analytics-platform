@@ -29,6 +29,7 @@ SELECT
     ) AS failure_rate_pct,
 
     CASE
+        WHEN COUNT(f.transaction_id) = 0 THEN 'No Activity'
         WHEN SUM(CASE WHEN f.is_fraud THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(f.transaction_id), 0) >= 5
              OR AVG(f.fraud_risk_score) >= 60 THEN 'High Risk'
         WHEN SUM(CASE WHEN f.is_fraud THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(f.transaction_id), 0) >= 2

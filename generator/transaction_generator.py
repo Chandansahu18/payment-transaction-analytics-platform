@@ -123,6 +123,8 @@ def generate_transactions(users_df, merchants_df, n=400000):
     start = datetime(2024, 1, 1)
     end = datetime(2025, 6, 30)
 
+    fraud_prone_merchants = random.sample(merchant_ids, k=min(10, len(merchant_ids)))
+
     user_reg_map = users_df[['user_id', 'registration_date']].copy()
     user_reg_map['registration_date'] = pd.to_datetime(user_reg_map['registration_date'])
     user_reg_map = dict(zip(
@@ -152,6 +154,8 @@ def generate_transactions(users_df, merchants_df, n=400000):
         status = random.choice(STATUSES)
 
         fraud_probability = 0.012
+        if merchant_id in fraud_prone_merchants:
+            fraud_probability += 0.15
         amount = round(random.uniform(50, 25000), 2)
 
         if amount > 15000:

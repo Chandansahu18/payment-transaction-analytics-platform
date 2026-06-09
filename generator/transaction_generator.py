@@ -135,7 +135,7 @@ def generate_transactions(users_df, merchants_df, n=400000):
         duration_days = random.choices([60, 180, 365, 540], weights=[20, 30, 30, 20])[0]
         user_end_map[uid] = min(user_reg_map[uid] + timedelta(days=duration_days), end)
 
-    burst_user_ids = random.sample(user_ids, k=30)
+    burst_user_ids = random.sample(user_ids, k=min(30, len(user_ids)))
     transactions.extend(generate_burst_transactions(burst_user_ids, merchant_ids, merchant_category_map, user_reg_map, user_end_map))
 
     remaining = n - len(transactions)

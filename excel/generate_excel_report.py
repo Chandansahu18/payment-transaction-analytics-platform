@@ -71,7 +71,7 @@ def _write_sheet(wb: Workbook, df: pd.DataFrame, title: str):
             cell.border = THIN_BORDER
             cell.alignment = CENTER
         if total > 50000 and r_idx % 50000 == 0:
-            print(f"  Writing {title}: {r_idx:,}/{total:,} rows")
+            logger.info("  Writing %s: %s/%s rows", title, f"{r_idx:,}", f"{total:,}")
     n_cols = len(df.columns)
     ws.auto_filter.ref = f"A1:{_col_letter(n_cols)}{len(df) + 1}"
     for i, col in enumerate(df.columns, 1):

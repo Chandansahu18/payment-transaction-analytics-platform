@@ -88,6 +88,12 @@ def main():
                 df = _fetch_df(cfg.qualified_query(), conn)
                 for col in df.select_dtypes(include=["datetimetz"]):
                     df[col] = df[col].dt.tz_localize(None)
+                if "view_generated_at" in df.columns:
+                    df = df.drop(columns=["view_generated_at"])
+                if "cohort_month" in df.columns:
+                    df["cohort_month"] = pd.to_datetime(df["cohort_month"]).dt.strftime("%Y-%m-%d")
+                if "transaction_ts" in df.columns:
+                    df["transaction_ts"] = pd.to_datetime(df["transaction_ts"]).dt.strftime("%Y-%m-%d %H:%M")
                 _write_sheet(wb, df, cfg.label)
                 logger.info("%-20s (%s rows)", cfg.label, f"{len(df):,}")
             except Exception:

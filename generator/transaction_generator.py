@@ -74,7 +74,7 @@ def build_transaction(user_id, merchant_ids, merchant_category_map, ts, is_fraud
         'created_at': datetime.now()
     }
 
-def generate_burst_transactions(burst_user_ids, merchant_ids, merchant_category_map, start, end, user_reg_map, user_end_map):
+def generate_burst_transactions(burst_user_ids, merchant_ids, merchant_category_map, user_reg_map, user_end_map):
     transactions = []
     for user_id in burst_user_ids:
         user_start = user_reg_map[user_id]
@@ -136,7 +136,7 @@ def generate_transactions(users_df, merchants_df, n=400000):
         user_end_map[uid] = min(user_reg_map[uid] + timedelta(days=duration_days), end)
 
     burst_user_ids = random.sample(user_ids, k=30)
-    transactions.extend(generate_burst_transactions(burst_user_ids, merchant_ids, merchant_category_map, start, end, user_reg_map, user_end_map))
+    transactions.extend(generate_burst_transactions(burst_user_ids, merchant_ids, merchant_category_map, user_reg_map, user_end_map))
 
     remaining = n - len(transactions)
     for _ in range(remaining):

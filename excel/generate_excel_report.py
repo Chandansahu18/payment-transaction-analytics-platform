@@ -55,11 +55,14 @@ SHEETS = [
     SheetConfig("Hourly_Data", "SELECT * FROM public.hourly_fraud_trends"),
     SheetConfig("Merchant_Data", "SELECT * FROM public.merchant_risk_profiling"),
     SheetConfig("Velocity_Data", "SELECT * FROM public.velocity_anomaly_detection"),
-    SheetConfig("Raw_Transactions", "SELECT * FROM raw.transactions"),
+    SheetConfig("Daily_KPIs", "SELECT * FROM marts.daily_overview_kpis ORDER BY day DESC"),
+    SheetConfig("Dim_Users", "SELECT * FROM marts.dim_users"),
+    SheetConfig("Fraud_Mart", "SELECT * FROM marts.fraud_analysis_mart ORDER BY fraud_risk_score DESC"),
 ]
 
 def _write_sheet(wb: Workbook, df: pd.DataFrame, title: str):
     ws = wb.create_sheet(title=title)
+    total = len(df)
     for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), 1):
         for c_idx, value in enumerate(row, 1):
             cell = ws.cell(row=r_idx, column=c_idx, value=value)
@@ -67,6 +70,8 @@ def _write_sheet(wb: Workbook, df: pd.DataFrame, title: str):
             cell.fill = HEADER_FILL if r_idx == 1 else PatternFill()
             cell.border = THIN_BORDER
             cell.alignment = CENTER
+        if total > 50000 and r_idx % 50000 == 0:
+            print(f"  Writing {title}: {r_idx:,}/{total:,} rows")
     n_cols = len(df.columns)
     ws.auto_filter.ref = f"A1:{_col_letter(n_cols)}{len(df) + 1}"
     for i, col in enumerate(df.columns, 1):
@@ -78,7 +83,7 @@ def main():
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SET search_path TO staging, intermediate, marts, public")
+            cur.execute("SET search_path TO marts, public")
 
         wb = Workbook()
         wb.remove(wb.worksheets[0])
@@ -93,7 +98,7 @@ def main():
                 if "cohort_month" in df.columns:
                     df["cohort_month"] = pd.to_datetime(df["cohort_month"]).dt.strftime("%Y-%m-%d")
                 if "transaction_ts" in df.columns:
-                    df["transaction_ts"] = pd.to_datetime(df["transaction_ts"]).dt.strftime("%Y-%m-%d %H:%M")
+                    df["transaction_ts"] = pd.to_datetime(df["transaction_ts"]).dt.strftime("%Y-%m-%d %H:%M:%S")
                 _write_sheet(wb, df, cfg.label)
                 logger.info("%-20s (%s rows)", cfg.label, f"{len(df):,}")
             except Exception:

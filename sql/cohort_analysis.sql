@@ -1,3 +1,5 @@
+CREATE OR REPLACE VIEW public.cohort_analysis AS
+
 WITH user_cohorts AS (
     SELECT
         user_id,

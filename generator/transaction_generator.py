@@ -2,7 +2,7 @@ import uuid
 import random
 import pandas as pd
 from faker import Faker
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 random.seed(42)
 Faker.seed(42)
@@ -32,7 +32,7 @@ def generate_users(n=1000):
             'user_id': f"USR_{str(uuid.uuid4())[:8].upper()}",
             'age_group': random.choice(AGE_GROUPS),
             'account_type': random.choice(ACCOUNT_TYPES),
-            'registration_date': fake.date_between(start_date='-3y', end_date='-6m'),
+            'registration_date': fake.date_between(start_date=date(2024, 1, 1), end_date=date(2025, 3, 31)),
             'city': city,
             'state': CITY_STATE_MAP[city]
         })
@@ -74,38 +74,41 @@ def build_transaction(user_id, merchant_ids, merchant_category_map, ts, is_fraud
         'created_at': datetime.now()
     }
 
-def generate_burst_transactions(burst_user_ids, merchant_ids, merchant_category_map, start, end, total_seconds):
+def generate_burst_transactions(burst_user_ids, merchant_ids, merchant_category_map, start, end, user_reg_map, user_end_map):
     transactions = []
     for user_id in burst_user_ids:
-        # Type A: 6-8 tx within 1 hour
+        user_start = user_reg_map[user_id]
+        user_end_local = user_end_map[user_id]
+        if user_start >= user_end_local:
+            continue
+        user_seconds = int((user_end_local - user_start).total_seconds())
+
         for _ in range(2):
-            base_ts = start + timedelta(seconds=random.randint(0, total_seconds))
+            base_ts = user_start + timedelta(seconds=random.randint(0, user_seconds))
             count = random.randint(6, 8)
             for _ in range(count):
                 ts = base_ts + timedelta(minutes=random.randint(0, 55))
-                if ts > end:
+                if ts > user_end_local:
                     break
                 transactions.append(build_transaction(user_id, merchant_ids, merchant_category_map, ts, is_fraud=random.random() < 0.3))
 
-        # Type B: 18-22 tx within 24 hours
-        base_ts = start + timedelta(seconds=random.randint(0, max(0, total_seconds - 86400)))
+        base_ts = user_start + timedelta(seconds=random.randint(0, max(0, user_seconds - 86400)))
         count = random.randint(18, 22)
         for _ in range(count):
             ts = base_ts + timedelta(hours=random.randint(0, 23), minutes=random.randint(0, 59))
-            if ts > end:
+            if ts > user_end_local:
                 break
             transactions.append(build_transaction(user_id, merchant_ids, merchant_category_map, ts, is_fraud=random.random() < 0.3))
 
-        # Type C: Combine 1h burst within 24h (triggers 'Both' + 'Critical')
-        base_ts = start + timedelta(seconds=random.randint(0, max(0, total_seconds - 86400)))
+        base_ts = user_start + timedelta(seconds=random.randint(0, max(0, user_seconds - 86400)))
         for _ in range(random.randint(6, 8)):
             ts = base_ts + timedelta(minutes=random.randint(0, 55))
-            if ts > end:
+            if ts > user_end_local:
                 break
             transactions.append(build_transaction(user_id, merchant_ids, merchant_category_map, ts, is_fraud=random.random() < 0.35))
         for _ in range(random.randint(10, 14)):
             ts = base_ts + timedelta(hours=random.randint(1, 23), minutes=random.randint(0, 59))
-            if ts > end:
+            if ts > user_end_local:
                 break
             transactions.append(build_transaction(user_id, merchant_ids, merchant_category_map, ts, is_fraud=random.random() < 0.35))
 
@@ -116,16 +119,34 @@ def generate_transactions(users_df, merchants_df, n=400000):
     user_ids = users_df['user_id'].tolist()
     merchant_ids = merchants_df['merchant_id'].tolist()
     merchant_category_map = merchants_df.set_index('merchant_id')['merchant_category'].to_dict()
-
+    
     start = datetime(2024, 1, 1)
     end = datetime(2025, 6, 30)
-    total_seconds = int((end - start).total_seconds())
+
+    user_reg_map = users_df[['user_id', 'registration_date']].copy()
+    user_reg_map['registration_date'] = pd.to_datetime(user_reg_map['registration_date'])
+    user_reg_map = dict(zip(
+        user_reg_map['user_id'],
+        user_reg_map['registration_date'].apply(lambda x: max(x.to_pydatetime(), start))
+    ))
+
+    user_end_map = {}
+    for uid in user_ids:
+        duration_days = random.choices([60, 180, 365, 540], weights=[20, 30, 30, 20])[0]
+        user_end_map[uid] = min(user_reg_map[uid] + timedelta(days=duration_days), end)
 
     burst_user_ids = random.sample(user_ids, k=30)
-    transactions.extend(generate_burst_transactions(burst_user_ids, merchant_ids, merchant_category_map, start, end, total_seconds))
+    transactions.extend(generate_burst_transactions(burst_user_ids, merchant_ids, merchant_category_map, start, end, user_reg_map, user_end_map))
 
     remaining = n - len(transactions)
     for _ in range(remaining):
+        user_id = random.choice(user_ids)
+        user_start = user_reg_map[user_id]
+        user_end_local = user_end_map[user_id]
+        if user_start >= user_end_local:
+            continue
+        user_seconds = int((user_end_local - user_start).total_seconds())
+
         merchant_id = random.choice(merchant_ids)
         merchant_category = merchant_category_map[merchant_id]
         status = random.choice(STATUSES)
@@ -138,7 +159,7 @@ def generate_transactions(users_df, merchants_df, n=400000):
         if merchant_category in ['Travel', 'Electronics']:
             fraud_probability += 0.015
 
-        ts = start + timedelta(seconds=random.randint(0, total_seconds))
+        ts = user_start + timedelta(seconds=random.randint(0, user_seconds))
         if 1 <= ts.hour <= 5:
             fraud_probability += 0.012
 
@@ -151,7 +172,7 @@ def generate_transactions(users_df, merchants_df, n=400000):
 
         transactions.append({
             'transaction_id': str(uuid.uuid4()),
-            'user_id': random.choice(user_ids),
+            'user_id': user_id,
             'merchant_id': merchant_id,
             'merchant_category': merchant_category,
             'payment_method': random.choice(PAYMENT_METHODS),

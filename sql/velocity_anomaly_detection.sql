@@ -1,3 +1,5 @@
+CREATE OR REPLACE VIEW public.velocity_anomaly_detection AS
+
 SELECT
     transaction_id,
     user_id,

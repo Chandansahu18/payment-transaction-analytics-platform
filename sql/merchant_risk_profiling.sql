@@ -1,3 +1,5 @@
+CREATE OR REPLACE VIEW public.merchant_risk_profiling AS
+
 SELECT
     m.merchant_id,
     m.merchant_name,

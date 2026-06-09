@@ -1,3 +1,5 @@
+CREATE OR REPLACE VIEW public.fraud_customer_segments AS
+
 WITH rfm_base AS (
     SELECT
         u.user_id,

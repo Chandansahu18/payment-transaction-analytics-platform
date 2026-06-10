@@ -41,3 +41,6 @@ data/raw/
 # Logs
 *.log
 logs/
+
+# excel
+*.xlsx

@@ -1,3 +1,5 @@
+CREATE OR REPLACE VIEW public.hourly_fraud_trends AS
+
 SELECT
     tx_hour,
     merchant_category,

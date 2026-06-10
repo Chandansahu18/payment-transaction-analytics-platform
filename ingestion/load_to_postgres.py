@@ -70,7 +70,12 @@ def load_data_to_postgres(
                 )
 
                 tuples = [tuple(x) for x in df.to_numpy()]
-                psycopg2.extras.execute_values(cur, query, tuples)
+                chunk_size = 10000
+                total = len(tuples)
+                for i in range(0, total, chunk_size):
+                    chunk = tuples[i:i + chunk_size]
+                    psycopg2.extras.execute_values(cur, query, chunk)
+                    logger.info("  Inserted %s/%s rows into %s", f"{min(i + chunk_size, total):,}", f"{total:,}", table_name)
 
                 # Update watermark in the SAME transaction
                 if incremental and not df.empty:

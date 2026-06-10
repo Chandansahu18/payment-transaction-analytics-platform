@@ -18,11 +18,10 @@ def get_db_connection():
             connect_timeout=10,
         )
         yield conn
-        conn.commit()
-    except Exception as e:
+    except Exception:
         if conn:
             conn.rollback()
-        logger.error(f"Database error: {e}")
+        logger.exception("Database error")
         raise
     finally:
         if conn:

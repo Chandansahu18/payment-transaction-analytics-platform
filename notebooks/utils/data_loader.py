@@ -1,4 +1,5 @@
 import logging
+import math
 
 import pandas as pd
 
@@ -66,8 +67,7 @@ def _warehouse_numeric(sql: str, column: str | None = None) -> float:
     """First cell of a one-row warehouse query as a plain Python float."""
     frame = query_warehouse(sql)
     col = column or str(frame.columns[0])
-    values = pd.to_numeric(frame[col], errors="coerce").to_numpy(dtype=float, na_value=float("nan"))
-    return float(values[0])
+    return float(pd.to_numeric(frame[col].iloc[0], errors="coerce"))
 
 
 def warehouse_scalar(sql: str, column: str | None = None) -> float:
@@ -77,7 +77,10 @@ def warehouse_scalar(sql: str, column: str | None = None) -> float:
 
 def warehouse_count(sql: str) -> int:
     """Return a single integer count from a one-row warehouse query."""
-    return int(_warehouse_numeric(sql))
+    value = _warehouse_numeric(sql)
+    if not math.isfinite(value) or value < 0:
+        raise ValueError(f"warehouse_count expected non-negative integer, got {value}")
+    return int(round(value))
 
 
 def get_merged_data() -> tuple[pd.DataFrame, str]:

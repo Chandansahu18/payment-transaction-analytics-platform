@@ -31,7 +31,10 @@ LEFT JOIN marts.dim_merchants m ON f.merchant_sk = m.merchant_sk
 def _prepare_merged_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["transaction_ts"] = pd.to_datetime(df["transaction_ts"])
-    df["amount"] = pd.to_numeric(df["amount"], errors="coerce")
+    converted = pd.to_numeric(df["amount"], errors="coerce")
+    if converted.isna().any():
+        logger.warning("Coerced %d invalid amount values to NaN", int(converted.isna().sum()))
+    df["amount"] = converted
     df["is_fraud"] = df["is_fraud"].astype(bool)
     df["month"] = df["transaction_ts"].dt.to_period("M").astype(str)
     df["is_success"] = df["status"].eq("success")
@@ -52,14 +55,13 @@ def query_warehouse(sql: str) -> pd.DataFrame:
     """Query Postgres warehouse via psycopg2 (no SQLAlchemy)."""
     from notebooks.utils.db_connector import get_db_connection
 
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql)
-            description = cur.description
-            if description is None:
-                return pd.DataFrame()
-            cols = [d[0] for d in description]
-            rows = cur.fetchall()
+    with get_db_connection() as conn, conn.cursor() as cur:
+        cur.execute(sql)
+        description = cur.description
+        if description is None:
+            return pd.DataFrame()
+        cols = [d[0] for d in description]
+        rows = cur.fetchall()
     return pd.DataFrame(rows, columns=cols)
 
 
@@ -67,7 +69,10 @@ def _warehouse_numeric(sql: str, column: str | None = None) -> float:
     """First cell of a one-row warehouse query as a plain Python float."""
     frame = query_warehouse(sql)
     col = column or str(frame.columns[0])
-    return float(pd.to_numeric(frame[col].iloc[0], errors="coerce"))
+    value = pd.to_numeric(frame[col].iloc[0], errors="coerce")
+    if pd.isna(value):
+        raise ValueError(f"warehouse_numeric returned NaN for query: {sql[:100]}")
+    return float(value)
 
 
 def warehouse_scalar(sql: str, column: str | None = None) -> float:

@@ -1,8 +1,5 @@
-"""Power BI–inspired chart theme: clean, minimal, consistent palette."""
-
 from matplotlib.ticker import FuncFormatter
 
-# Core palette (Microsoft Power BI–style)
 C = {
     "primary": "#118DFF",
     "secondary": "#12239E",

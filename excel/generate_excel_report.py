@@ -50,11 +50,11 @@ class SheetConfig:
         return f"{q} LIMIT {self.max_rows}" if self.max_rows else q
 
 SHEETS = [
-    SheetConfig("Cohort_Data", "SELECT * FROM public.cohort_analysis"),
-    SheetConfig("Segments_Data", "SELECT * FROM public.fraud_customer_segments"),
-    SheetConfig("Hourly_Data", "SELECT * FROM public.hourly_fraud_trends"),
-    SheetConfig("Merchant_Data", "SELECT * FROM public.merchant_risk_profiling"),
-    SheetConfig("Velocity_Data", "SELECT * FROM public.velocity_anomaly_detection"),
+    SheetConfig("Cohort_Data", "SELECT * FROM reporting.cohort_analysis"),
+    SheetConfig("Segments_Data", "SELECT * FROM reporting.fraud_customer_segments"),
+    SheetConfig("Hourly_Data", "SELECT * FROM reporting.hourly_fraud_trends"),
+    SheetConfig("Merchant_Data", "SELECT * FROM reporting.merchant_risk_profiling"),
+    SheetConfig("Velocity_Data", "SELECT * FROM reporting.velocity_anomaly_detection"),
     SheetConfig("Daily_KPIs", "SELECT * FROM marts.daily_overview_kpis ORDER BY day DESC"),
     SheetConfig("Dim_Users", "SELECT * FROM marts.dim_users"),
     SheetConfig("Fraud_Mart", "SELECT * FROM marts.fraud_analysis_mart ORDER BY fraud_risk_score DESC"),
@@ -83,7 +83,7 @@ def main():
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SET search_path TO marts, public")
+            cur.execute("SET search_path TO marts, reporting, public")
 
         wb = Workbook()
         wb.remove(wb.worksheets[0])

@@ -21,6 +21,8 @@ vars:
   odd_hour_end: 5
   high_amount_threshold: 25000
   risky_merchant_categories: ['Travel', 'Electronics']
+  fraud_velocity_threshold_1h: 5
+  fraud_velocity_threshold_24h: 15
 
 models:
   payment_dbt:

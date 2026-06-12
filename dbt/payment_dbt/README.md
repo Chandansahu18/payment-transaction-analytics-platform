@@ -31,9 +31,12 @@ dbt/payment_dbt/
 │       │   ├── dim_merchants.sql    
 │       │   └── fct_transactions.sql 
 │       └── analytics/
-│           ├── daily_overview_kpis.sql       
-│           ├── daily_merchant_kpis.sql       
-│           └── fraud_analysis_mart.sql       
+│           ├── daily_overview_kpis.sql
+│           ├── cohort_analysis.sql
+│           ├── hourly_fraud_trends.sql
+│           ├── merchant_risk_profiling.sql
+│           ├── velocity_anomaly_detection.sql
+│           └── fraud_customer_segments.sql
 └── tests/
     └── assert_fraud_score_range.sql 
 ```

@@ -17,6 +17,9 @@ SELECT
     customer_tx_ratio,
     failed_transactions,
     failure_rate_pct,
+    is_rate_reliable,
     merchant_risk_category,
+    round(fraud_rate_pct / 100.0, 4) AS fraud_rate_ratio,
+    round(failure_rate_pct / 100.0, 4) AS failure_rate_ratio,
     CURRENT_TIMESTAMP AS view_generated_at
 FROM marts.merchant_risk_profiling;

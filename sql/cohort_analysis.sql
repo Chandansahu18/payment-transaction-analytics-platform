@@ -10,5 +10,12 @@ SELECT
     retention_1m_pct,
     retention_3m_pct,
     retention_6m_pct,
+    mature_1m_cohort_size,
+    mature_3m_cohort_size,
+    mature_6m_cohort_size,
+    round(retention_1m_pct / 100.0, 4) AS retention_1m_rate,
+    round(retention_3m_pct / 100.0, 4) AS retention_3m_rate,
+    round(retention_6m_pct / 100.0, 4) AS retention_6m_rate,
+    round(fraud_rate_pct / 100.0, 4) AS fraud_rate_ratio,
     CURRENT_TIMESTAMP AS view_generated_at
 FROM marts.cohort_analysis;

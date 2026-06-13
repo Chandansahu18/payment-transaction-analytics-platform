@@ -1,3 +1,8 @@
+{% set high_fraud_pct = var('merchant_risk_high_fraud_rate_pct') %}
+{% set med_fraud_pct = var('merchant_risk_medium_fraud_rate_pct') %}
+{% set high_avg_score = var('merchant_risk_high_avg_score') %}
+{% set med_avg_score = var('merchant_risk_medium_avg_score') %}
+
 select
     m.merchant_id,
     m.merchant_name,
@@ -24,10 +29,10 @@ select
     ) as failure_rate_pct,
     case
         when count(f.transaction_id) = 0 then 'No Activity'
-        when sum(case when f.is_fraud then 1 else 0 end) * 100.0 / nullif(count(f.transaction_id), 0) >= 5
-            or avg(f.fraud_risk_score) >= 60 then 'High Risk'
-        when sum(case when f.is_fraud then 1 else 0 end) * 100.0 / nullif(count(f.transaction_id), 0) >= 2
-            or avg(f.fraud_risk_score) >= 40 then 'Medium Risk'
+        when sum(case when f.is_fraud then 1 else 0 end) * 100.0 / nullif(count(f.transaction_id), 0) >= {{ high_fraud_pct }}
+            or avg(f.fraud_risk_score) >= {{ high_avg_score }} then 'High Risk'
+        when sum(case when f.is_fraud then 1 else 0 end) * 100.0 / nullif(count(f.transaction_id), 0) >= {{ med_fraud_pct }}
+            or avg(f.fraud_risk_score) >= {{ med_avg_score }} then 'Medium Risk'
         else 'Low Risk'
     end as merchant_risk_category,
     current_timestamp as dbt_updated_at

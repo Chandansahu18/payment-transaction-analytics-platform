@@ -24,7 +24,8 @@ INDIAN_CITIES = list(CITY_STATE_MAP.keys())
 MERCHANT_CATEGORIES = ['Retail', 'Food & Beverage', 'Travel', 'Electronics',
                        'Healthcare', 'Entertainment', 'Groceries', 'Fashion']
 PAYMENT_METHODS = ['UPI', 'Debit Card', 'Credit Card', 'Wallet', 'NetBanking']
-STATUSES = ['success', 'success', 'success', 'success', 'failed', 'declined', 'disputed']
+_NON_FRAUD_STATUS_WEIGHTS = (95, 3, 1, 1) 
+_FRAUD_STATUS_WEIGHTS = (55, 30, 15)
 DEVICE_TYPES = ['mobile', 'mobile', 'desktop', 'POS']
 AGE_GROUPS = ['18-25', '26-35', '36-50', '50+']
 ACCOUNT_TYPES = ['savings', 'current', 'premium']
@@ -78,9 +79,23 @@ def _assign_user_segment():
     return random.choices(segments, weights=weights, k=1)[0]
 
 
+def _assign_status(is_fraud):
+    if is_fraud:
+        return random.choices(
+            ['failed', 'declined', 'disputed'],
+            weights=_FRAUD_STATUS_WEIGHTS,
+            k=1,
+        )[0]
+    return random.choices(
+        ['success', 'failed', 'declined', 'disputed'],
+        weights=_NON_FRAUD_STATUS_WEIGHTS,
+        k=1,
+    )[0]
+
+
 def _sample_amount(is_fraud, merchant_category):
     if is_fraud:
-        return round(random.uniform(18000, 75000), 2)
+        return round(random.uniform(10000, 42000), 2)
     if merchant_category in ('Groceries', 'Food & Beverage'):
         return round(random.uniform(50, 3500), 2)
     if merchant_category in ('Retail', 'Fashion'):
@@ -138,7 +153,7 @@ def _build_transaction_record(user_id, merchant_ids, merchant_category_map, ts, 
         'payment_method': random.choice(PAYMENT_METHODS),
         'amount': amount,
         'currency': 'INR',
-        'status': random.choice(STATUSES),
+        'status': _assign_status(is_fraud),
         'is_fraud': is_fraud,
         'device_type': device_type,
         'city': city,

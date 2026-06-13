@@ -15,16 +15,16 @@ DBT_DIR := dbt/payment_dbt
 DBT     := "$(CURDIR)/$(VENV_BIN)/dbt"
 DBT_RUN := cd $(DBT_DIR) && $(DBT)
 
-.PHONY: help setup up down logs \
+.PHONY: help setup setup-db up down logs \
         ingest pipeline publish refresh excel \
         generate-data load-data reset-raw deploy-views \
-        deps build run test compile docs debug list setup-db clean \
+        deps build run test compile docs debug list clean \
         warehouse refresh-data docker-up docker-down docker-logs all serve seed
 
 help:
 	@echo ""
 	@echo "  QUICK START"
-	@echo "    make up          Start PostgreSQL (Docker)"
+	@echo "    make up          Start PostgreSQL and wait until ready"
 	@echo "    make pipeline    Transform data (dbt) + publish reporting views"
 	@echo "    make refresh     Full rebuild (reset + ingest + pipeline)"
 	@echo ""
@@ -34,7 +34,8 @@ help:
 	@echo "    make excel       Export Excel dashboard workbook"
 	@echo ""
 	@echo "  FIRST-TIME SETUP"
-	@echo "    make setup       Install dbt packages + configure database"
+	@echo "    make setup       Install dbt packages (no database required)"
+	@echo "    make setup-db    Configure database (requires: make up)"
 	@echo ""
 	@echo "  OPTIONAL (dbt)"
 	@echo "    make build       dbt build          [SELECT=model_name]"
@@ -43,8 +44,9 @@ help:
 	@echo "    make docs        Generate dbt documentation"
 	@echo ""
 	@echo "  EXAMPLES"
+	@echo "    make up && make setup-db"
 	@echo "    make pipeline"
-	@echo "    make build SELECT=marts+"
+	@echo "    make build SELECT=velocity_anomaly_detection"
 	@echo "    make refresh"
 	@echo ""
 
@@ -65,22 +67,22 @@ publish: deploy-views
 excel:
 	$(PYTHON) excel/generate_excel_report.py
 
-setup: deps setup-db
-	@echo Setup complete. Run: make up && make refresh
+setup: deps
+	@echo Setup complete. Run: make up && make setup-db
+
+setup-db:
+	$(DBT_RUN) debug
+	psql -h $(POSTGRES_HOST) -p $(POSTGRES_PORT) -U $(POSTGRES_USER) -d $(POSTGRES_DB) \
+		-c "ALTER ROLE $(POSTGRES_USER) SET search_path TO staging, intermediate, marts, reporting, public;"
 
 docker-up:
-	docker compose up -d
+	docker compose up -d --wait
 
 docker-down:
 	docker compose down
 
 docker-logs:
 	docker compose logs -f
-
-setup-db:
-	$(DBT_RUN) debug
-	psql -h $(POSTGRES_HOST) -p $(POSTGRES_PORT) -U $(POSTGRES_USER) -d $(POSTGRES_DB) \
-		-c "ALTER ROLE $(POSTGRES_USER) SET search_path TO staging, intermediate, marts, reporting, public;"
 
 generate-data:
 	$(PYTHON) generator/transaction_generator.py
@@ -126,8 +128,8 @@ seed:
 	$(DBT_RUN) seed
 
 clean:
-	$(PYTHON) -c "import shutil, pathlib; [shutil.rmtree(p, ignore_errors=True) for p in pathlib.Path('$(DBT_DIR)').glob('target')] ; [shutil.rmtree(p, ignore_errors=True) for p in [pathlib.Path('$(DBT_DIR)')/'dbt_packages', pathlib.Path('$(DBT_DIR)')/'logs']]"
+	$(PYTHON) -c "import shutil, pathlib; dbt=pathlib.Path('$(DBT_DIR)'); [shutil.rmtree(p, ignore_errors=True) for p in [dbt/'target', dbt/'dbt_packages', dbt/'logs']]"
 
 warehouse: pipeline
 refresh-data: refresh
-all: setup pipeline docs
+all: setup setup-db pipeline docs

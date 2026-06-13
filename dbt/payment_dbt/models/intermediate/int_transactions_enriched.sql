@@ -29,8 +29,8 @@ with_flags as (
         v.tx_count_1h,
         v.tx_count_24h,
         v.tx_same_category_24h,
-        v.tx_count_1h >= {{ var('fraud_velocity_threshold_1h', 5) }} as is_velocity_spike_1h,
-        v.tx_count_24h >= {{ var('fraud_velocity_threshold_24h', 15) }} as is_velocity_spike_24h
+        v.tx_count_1h >= {{ var('fraud_velocity_threshold_1h') }} as is_velocity_spike_1h,
+        v.tx_count_24h >= {{ var('fraud_velocity_threshold_24h') }} as is_velocity_spike_24h
     from base b
     left join velocity v on b.transaction_id = v.transaction_id
 ),

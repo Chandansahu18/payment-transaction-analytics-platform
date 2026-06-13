@@ -2,95 +2,134 @@
 
 -include .env
 export POSTGRES_HOST POSTGRES_PORT POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD DBT_SCHEMA
-PGPASSWORD := $(POSTGRES_PASSWORD)
-export PGPASSWORD
+export PGPASSWORD := $(POSTGRES_PASSWORD)
 
 ifeq ($(OS),Windows_NT)
     VENV_BIN := .venv/Scripts
 else
     VENV_BIN := .venv/bin
 endif
-DBT_DIR  := dbt/payment_dbt
-DBT      := "$(CURDIR)/$(VENV_BIN)/dbt"
 
-.PHONY: help compile run test build docs clean deps seed all debug list setup-db docker-up docker-down docker-logs
+PYTHON  := "$(CURDIR)/$(VENV_BIN)/python"
+DBT_DIR := dbt/payment_dbt
+DBT     := "$(CURDIR)/$(VENV_BIN)/dbt"
+DBT_RUN := cd $(DBT_DIR) && $(DBT)
+
+.PHONY: help setup setup-db up down logs \
+        ingest pipeline publish refresh excel \
+        generate-data load-data reset-raw deploy-views \
+        deps build run test compile docs debug list clean \
+        warehouse refresh-data docker-up docker-down docker-logs all serve seed
 
 help:
-	@echo "Usage: make <target> [SELECT=<dbt_select>]"
 	@echo ""
-	@echo "Targets:"
-	@echo "  deps          Install dbt packages"
-	@echo "  compile       Compile dbt models"
-	@echo "  run           Run dbt models (use SELECT= to filter, e.g., SELECT=stg_)"
-	@echo "  test          Run dbt tests (use SELECT= to filter)"
-	@echo "  build         Run + test in dependency order"
-	@echo "  docs          Generate dbt docs"
-	@echo "  seed          Load seed data"
-	@echo "  clean         Drop target artifacts"
-	@echo "  all           Full pipeline: deps -> seed -> build -> docs"
-	@echo "  debug         Debug dbt connection and configuration"
-	@echo "  list          List dbt models (use SELECT= to filter)"
-	@echo "  setup-db      Set database search_path for analytics queries"
+	@echo "  QUICK START"
+	@echo "    make up          Start PostgreSQL and wait until ready"
+	@echo "    make pipeline    Transform data (dbt) + publish reporting views"
+	@echo "    make refresh     Full rebuild (reset + ingest + pipeline)"
 	@echo ""
-	@echo "Docker:"
-	@echo "  docker-up     Start Docker services (PostgreSQL)"
-	@echo "  docker-down   Stop Docker services"
-	@echo "  docker-logs   Tail Docker logs"
+	@echo "  DATA"
+	@echo "    make ingest      Generate synthetic CSVs + load into raw tables"
+	@echo "    make publish     Deploy reporting.* views only"
+	@echo "    make excel       Export Excel dashboard workbook"
 	@echo ""
-	@echo "Examples:"
-	@echo "  make compile"
-	@echo "  make run SELECT=stg_transactions"
-	@echo "  make build"
+	@echo "  FIRST-TIME SETUP"
+	@echo "    make setup       Install dbt packages (no database required)"
+	@echo "    make setup-db    Configure database (requires: make up)"
+	@echo ""
+	@echo "  OPTIONAL (dbt)"
+	@echo "    make build       dbt build          [SELECT=model_name]"
+	@echo "    make run         dbt run            [SELECT=staging]"
+	@echo "    make test        dbt test           [SELECT=marts]"
+	@echo "    make docs        Generate dbt documentation"
+	@echo ""
+	@echo "  EXAMPLES"
+	@echo "    make up && make setup-db"
+	@echo "    make pipeline"
+	@echo "    make build SELECT=velocity_anomaly_detection"
+	@echo "    make refresh"
+	@echo ""
 
-debug:
-	cd $(DBT_DIR) && $(DBT) debug
+up: docker-up
 
-list:
-	cd $(DBT_DIR) && $(DBT) ls $(if $(SELECT),--select $(SELECT))
+down: docker-down
+
+logs: docker-logs
+
+ingest: generate-data load-data
+
+pipeline: build deploy-views
+
+refresh: reset-raw ingest pipeline
+
+publish: deploy-views
+
+excel:
+	$(PYTHON) excel/generate_excel_report.py
+
+setup: deps
+	@echo Setup complete. Run: make up && make setup-db
 
 setup-db:
-	cd $(DBT_DIR) && $(DBT) source snapshot-freshness && \
+	$(DBT_RUN) debug
 	psql -h $(POSTGRES_HOST) -p $(POSTGRES_PORT) -U $(POSTGRES_USER) -d $(POSTGRES_DB) \
-	-c "ALTER ROLE $(POSTGRES_USER) SET search_path TO staging, intermediate, marts, public;"
+		-c "ALTER ROLE $(POSTGRES_USER) SET search_path TO staging, intermediate, marts, reporting, public;"
 
 docker-up:
-	docker-compose up -d
+	docker compose up -d --wait
 
 docker-down:
-	docker-compose down
+	docker compose down
 
 docker-logs:
-	docker-compose logs -f
+	docker compose logs -f
+
+generate-data:
+	$(PYTHON) generator/transaction_generator.py
+
+load-data:
+	$(PYTHON) -m ingestion.create_raw_tables
+	$(PYTHON) -m ingestion.load_to_postgres
+
+reset-raw:
+	$(PYTHON) -m ingestion.reset_raw
+
+deploy-views:
+	$(PYTHON) sql/deploy_views.py
 
 deps:
-	cd $(DBT_DIR) && $(DBT) deps
-
-compile:
-	cd $(DBT_DIR) && $(DBT) compile
-
-run:
-	cd $(DBT_DIR) && $(DBT) run $(if $(SELECT),--select $(SELECT))
-
-test:
-	cd $(DBT_DIR) && $(DBT) test $(if $(SELECT),--select $(SELECT))
+	$(DBT_RUN) deps
 
 build:
-	cd $(DBT_DIR) && $(DBT) build $(if $(SELECT),--select $(SELECT))
+	$(DBT_RUN) build $(if $(SELECT),--select $(SELECT),)
+
+run:
+	$(DBT_RUN) run $(if $(SELECT),--select $(SELECT),)
+
+test:
+	$(DBT_RUN) test $(if $(SELECT),--select $(SELECT),)
+
+compile:
+	$(DBT_RUN) compile $(if $(SELECT),--select $(SELECT),)
 
 docs:
-	cd $(DBT_DIR) && $(DBT) docs generate
+	$(DBT_RUN) docs generate
 
 serve: docs
-	cd $(DBT_DIR) && $(DBT) docs serve
+	$(DBT_RUN) docs serve
+
+debug:
+	$(DBT_RUN) debug
+
+list:
+	$(DBT_RUN) ls $(if $(SELECT),--select $(SELECT),)
 
 seed:
-	@if [ -d "$(DBT_DIR)/seeds" ]; then \
-		cd "$(DBT_DIR)" && $(DBT) seed; \
-	else \
-		echo "No seeds directory found"; \
-	fi
+	$(DBT_RUN) seed
 
 clean:
-	rm -rf $(DBT_DIR)/target $(DBT_DIR)/dbt_packages $(DBT_DIR)/logs
+	$(PYTHON) -c "import shutil, pathlib; dbt=pathlib.Path('$(DBT_DIR)'); [shutil.rmtree(p, ignore_errors=True) for p in [dbt/'target', dbt/'dbt_packages', dbt/'logs']]"
 
-all: deps seed build docs setup-db
+warehouse: pipeline
+refresh-data: refresh
+all: setup setup-db pipeline docs

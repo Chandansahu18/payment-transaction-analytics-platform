@@ -12,6 +12,7 @@ NUM_USERS = 12_000
 NUM_MERCHANTS = 600
 TARGET_TRANSACTIONS = 500_000
 TARGET_FRAUD_RATE_PCT = 3.5
+TARGET_FRAUD_TOLERANCE_PCT = 0.25
 
 CITY_STATE_MAP = {
     'Mumbai': 'Maharashtra', 'Bengaluru': 'Karnataka', 'Delhi': 'Delhi',
@@ -24,18 +25,18 @@ INDIAN_CITIES = list(CITY_STATE_MAP.keys())
 MERCHANT_CATEGORIES = ['Retail', 'Food & Beverage', 'Travel', 'Electronics',
                        'Healthcare', 'Entertainment', 'Groceries', 'Fashion']
 PAYMENT_METHODS = ['UPI', 'Debit Card', 'Credit Card', 'Wallet', 'NetBanking']
-_NON_FRAUD_STATUS_WEIGHTS = (95, 3, 1, 1) 
+_NON_FRAUD_STATUS_WEIGHTS = (96, 2, 1, 1)
 _FRAUD_STATUS_WEIGHTS = (55, 30, 15)
 DEVICE_TYPES = ['mobile', 'mobile', 'desktop', 'POS']
 AGE_GROUPS = ['18-25', '26-35', '36-50', '50+']
 ACCOUNT_TYPES = ['savings', 'current', 'premium']
 
 USER_SEGMENTS = {
-    'dormant': {'weight': 0.35, 'monthly_active_prob': 0.18, 'tx_range': (0, 2), 'churn_prob': 0.45},
-    'light': {'weight': 0.30, 'monthly_active_prob': 0.35, 'tx_range': (1, 4), 'churn_prob': 0.30},
-    'medium': {'weight': 0.20, 'monthly_active_prob': 0.55, 'tx_range': (2, 8), 'churn_prob': 0.18},
-    'heavy': {'weight': 0.10, 'monthly_active_prob': 0.72, 'tx_range': (4, 14), 'churn_prob': 0.10},
-    'power': {'weight': 0.05, 'monthly_active_prob': 0.85, 'tx_range': (8, 22), 'churn_prob': 0.06},
+    'dormant': {'weight': 0.28, 'monthly_active_prob': 0.14, 'tx_range': (0, 2), 'churn_prob': 0.52},
+    'light': {'weight': 0.32, 'monthly_active_prob': 0.30, 'tx_range': (1, 4), 'churn_prob': 0.34},
+    'medium': {'weight': 0.22, 'monthly_active_prob': 0.50, 'tx_range': (2, 8), 'churn_prob': 0.20},
+    'heavy': {'weight': 0.11, 'monthly_active_prob': 0.68, 'tx_range': (4, 14), 'churn_prob': 0.11},
+    'power': {'weight': 0.07, 'monthly_active_prob': 0.82, 'tx_range': (8, 22), 'churn_prob': 0.07},
 }
 
 DATA_START = datetime(2024, 1, 1)
@@ -95,7 +96,7 @@ def _assign_status(is_fraud):
 
 def _sample_amount(is_fraud, merchant_category):
     if is_fraud:
-        return round(random.uniform(10000, 42000), 2)
+        return round(random.uniform(1500, 8500), 2)
     if merchant_category in ('Groceries', 'Food & Beverage'):
         return round(random.uniform(50, 3500), 2)
     if merchant_category in ('Retail', 'Fashion'):
@@ -104,24 +105,24 @@ def _sample_amount(is_fraud, merchant_category):
 
 
 def _evaluate_fraud(user_ctx, merchant_id, merchant_category, amount, ts, device_type, fraud_prone_merchants):
-    fraud_probability = 0.006 + user_ctx['fraud_propensity']
+    fraud_probability = 0.0035 + user_ctx['fraud_propensity']
 
     if merchant_id in fraud_prone_merchants:
-        fraud_probability += 0.12
-    if amount > 15000:
-        fraud_probability += 0.025
+        fraud_probability += 0.045
+    if amount > 12000:
+        fraud_probability += 0.012
     if merchant_category in ('Travel', 'Electronics'):
-        fraud_probability += 0.018
+        fraud_probability += 0.010
     if 1 <= ts.hour <= 5:
-        fraud_probability += 0.015
+        fraud_probability += 0.008
     if user_ctx['prior_tx_count'] >= 3 and amount > user_ctx['avg_amount'] * 4:
-        fraud_probability += 0.04
-    if device_type != user_ctx['primary_device'] and amount > 10000:
-        fraud_probability += 0.03
-    if user_ctx.get('inactive_days', 0) >= 45 and amount > 12000:
-        fraud_probability += 0.035
+        fraud_probability += 0.018
+    if device_type != user_ctx['primary_device'] and amount > 8000:
+        fraud_probability += 0.014
+    if user_ctx.get('inactive_days', 0) >= 45 and amount > 9000:
+        fraud_probability += 0.016
 
-    return random.random() < min(fraud_probability, 0.65)
+    return random.random() < min(fraud_probability, 0.22)
 
 
 def _build_transaction_record(user_id, merchant_ids, merchant_category_map, ts, is_fraud, user_ctx):
@@ -178,7 +179,7 @@ def _generate_burst_cluster(user_id, merchant_ids, merchant_category_map, base_t
         ts = base_ts + timedelta(minutes=random.randint(0, 50))
         if ts > user_end:
             break
-        is_fraud = random.random() < 0.18
+        is_fraud = random.random() < 0.06
         transactions.append(
             _build_transaction_record(user_id, merchant_ids, merchant_category_map, ts, is_fraud, user_ctx)
         )
@@ -187,7 +188,7 @@ def _generate_burst_cluster(user_id, merchant_ids, merchant_category_map, base_t
         ts = base_ts + timedelta(hours=random.randint(0, 22), minutes=random.randint(0, 59))
         if ts > user_end:
             break
-        is_fraud = random.random() < 0.14
+        is_fraud = random.random() < 0.04
         transactions.append(
             _build_transaction_record(user_id, merchant_ids, merchant_category_map, ts, is_fraud, user_ctx)
         )
@@ -197,14 +198,14 @@ def generate_transactions(users_df, merchants_df, n=TARGET_TRANSACTIONS):
     transactions = []
     merchant_ids = merchants_df['merchant_id'].tolist()
     merchant_category_map = merchants_df.set_index('merchant_id')['merchant_category'].to_dict()
-    fraud_prone_merchants = set(random.sample(merchant_ids, k=min(25, len(merchant_ids))))
+    fraud_prone_merchants = set(random.sample(merchant_ids, k=min(12, len(merchant_ids))))
 
     user_reg_map = {
         row.user_id: max(pd.to_datetime(row.registration_date).to_pydatetime(), DATA_START)
         for row in users_df.itertuples(index=False)
     }
 
-    burst_user_ids = set(random.sample(list(user_reg_map.keys()), k=int(len(user_reg_map) * 0.025)))
+    burst_user_ids = set(random.sample(list(user_reg_map.keys()), k=int(len(user_reg_map) * 0.018)))
 
     for user_id, user_start in user_reg_map.items():
         segment = _assign_user_segment()
@@ -304,7 +305,48 @@ def generate_transactions(users_df, merchants_df, n=TARGET_TRANSACTIONS):
                 _build_transaction_record(user_id, merchant_ids, merchant_category_map, ts, None, user_ctx)
             )
 
-    return pd.DataFrame(transactions[:n])
+    return _calibrate_fraud_rate(pd.DataFrame(transactions[:n]), TARGET_FRAUD_RATE_PCT)
+
+
+def _apply_fraud_flag(row, is_fraud):
+    row = row.copy()
+    row['is_fraud'] = is_fraud
+    row['status'] = _assign_status(is_fraud)
+    if is_fraud:
+        row['amount'] = _sample_amount(True, row['merchant_category'])
+    return row
+
+
+def _calibrate_fraud_rate(transactions_df, target_pct):
+    if transactions_df.empty:
+        return transactions_df
+
+    current_pct = transactions_df['is_fraud'].mean() * 100
+    if abs(current_pct - target_pct) <= TARGET_FRAUD_TOLERANCE_PCT:
+        return transactions_df
+
+    target_count = int(round(len(transactions_df) * target_pct / 100))
+    current_count = int(transactions_df['is_fraud'].sum())
+    delta = target_count - current_count
+    rng = transactions_df.sample(frac=1, random_state=42).reset_index(drop=True)
+
+    if delta < 0:
+        fraud_rows = rng[rng['is_fraud']].sort_values('amount', ascending=False)
+        flip_ids = fraud_rows.head(abs(delta)).index
+        for idx in flip_ids:
+            rng.loc[idx] = _apply_fraud_flag(rng.loc[idx], False)
+    else:
+        clean_rows = rng[~rng['is_fraud']].copy()
+        clean_rows['fraud_score'] = (
+            (clean_rows['amount'] > 10000).astype(int) * 2
+            + clean_rows['merchant_category'].isin(['Travel', 'Electronics']).astype(int)
+            + (clean_rows['device_type'] == 'mobile').astype(int)
+        )
+        flip_ids = clean_rows.sort_values('fraud_score', ascending=False).head(delta).index
+        for idx in flip_ids:
+            rng.loc[idx] = _apply_fraud_flag(rng.loc[idx], True)
+
+    return rng
 
 
 if __name__ == '__main__':
@@ -326,6 +368,5 @@ if __name__ == '__main__':
     print(f"Transactions : {len(transactions):,}")
     print(f"Users        : {len(users):,}")
     print(f"Merchants    : {len(merchants):,}")
-    print(f"Txns / User  : {len(transactions) / len(users):.1f}")
     fraud_rate = transactions['is_fraud'].mean() * 100
     print(f"Fraud Rate   : {fraud_rate:.2f}%")

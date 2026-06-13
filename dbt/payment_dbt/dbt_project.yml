@@ -61,6 +61,7 @@ vars:
   velocity_score_fraud_cap: 12
 
   # Merchant risk profiling
+  merchant_risk_min_transactions: 50
   merchant_risk_high_fraud_rate_pct: 5
   merchant_risk_medium_fraud_rate_pct: 2
   merchant_risk_high_avg_score: 60

@@ -9,19 +9,37 @@ with rfm_base as (
     from {{ ref('fct_transactions') }} as f
     inner join {{ ref('dim_users') }} as u on f.user_sk = u.user_sk
     group by u.user_id
+),
+
+data_anchor as (
+    select max(last_transaction_ts) as anchor_ts
+    from rfm_base
+),
+
+scored as (
+    select
+        r.user_id,
+        r.last_transaction_ts,
+        r.frequency,
+        r.monetary_value,
+        r.fraud_count,
+        r.category_diversity,
+        date_part('day', a.anchor_ts - r.last_transaction_ts) as recency_days
+    from rfm_base as r
+    cross join data_anchor as a
 )
 
 select
     user_id,
-    date_part('day', current_date - last_transaction_ts) as recency_days,
+    recency_days,
     frequency,
     monetary_value,
     fraud_count,
     category_diversity,
     case
-        when date_part('day', current_date - last_transaction_ts) <= 7 then 'Active'
-        when date_part('day', current_date - last_transaction_ts) <= 30 then 'Recent'
-        when date_part('day', current_date - last_transaction_ts) <= 90 then 'Lapsed'
+        when recency_days <= 7 then 'Active'
+        when recency_days <= 30 then 'Recent'
+        when recency_days <= 90 then 'Lapsed'
         else 'Inactive'
     end as recency_segment,
     case
@@ -40,4 +58,4 @@ select
         else 'Clean'
     end as fraud_segment,
     current_timestamp as dbt_updated_at
-from rfm_base
+from scored

@@ -1,0 +1,186 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  POSTGRES_HOST: localhost
+  POSTGRES_PORT: 5432
+  POSTGRES_DB: payment_transaction_warehouse
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: ci_test_password
+  PGPASSWORD: ci_test_password
+
+jobs:
+  unit-tests:
+    name: Unit tests & dbt parse
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Create virtual environment and install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Write CI environment file
+        run: |
+          cat > .env <<EOF
+          POSTGRES_HOST=${POSTGRES_HOST}
+          POSTGRES_PORT=${POSTGRES_PORT}
+          POSTGRES_DB=${POSTGRES_DB}
+          POSTGRES_USER=${POSTGRES_USER}
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          EOF
+
+      - name: Cache dbt packages
+        uses: actions/cache@v4
+        with:
+          path: dbt/payment_dbt/dbt_packages
+          key: dbt-packages-${{ hashFiles('dbt/payment_dbt/packages.yml') }}
+          restore-keys: |
+            dbt-packages-
+
+      - name: Install dbt packages
+        run: make setup
+
+      - name: Validate dbt project (parse, no DB)
+        run: cd dbt/payment_dbt && ../../.venv/bin/dbt parse
+
+      - name: Run unit pytest (loader contract, no DB)
+        run: .venv/bin/python -m pytest tests/test_ingestion.py::test_incremental_load_requires_transaction_ts -v
+
+  e2e-pipeline:
+    name: E2E pipeline (ingest · pytest · dbt)
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    timeout-minutes: 60
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci_test_password
+          POSTGRES_DB: payment_transaction_warehouse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d payment_transaction_warehouse"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Create virtual environment and install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Write CI environment file
+        run: |
+          cat > .env <<EOF
+          POSTGRES_HOST=${POSTGRES_HOST}
+          POSTGRES_PORT=${POSTGRES_PORT}
+          POSTGRES_DB=${POSTGRES_DB}
+          POSTGRES_USER=${POSTGRES_USER}
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          EOF
+
+      - name: Cache dbt packages
+        uses: actions/cache@v4
+        with:
+          path: dbt/payment_dbt/dbt_packages
+          key: dbt-packages-${{ hashFiles('dbt/payment_dbt/packages.yml') }}
+          restore-keys: |
+            dbt-packages-
+
+      - name: Install dbt packages
+        run: make setup
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}"; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Configure database
+        run: make setup-db
+
+      - name: Ingest raw data (generate CSVs + load raw.*)
+        run: make ingest
+
+      - name: Run ingestion tests (pytest)
+        run: make pytest
+
+      - name: Run dbt pipeline (dbt build + reporting views)
+        run: make pipeline
+
+      - name: Run dbt warehouse tests
+        run: make test
+
+      - name: Upload dbt artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-debug-${{ github.run_id }}
+          path: |
+            dbt/payment_dbt/logs/
+            dbt/payment_dbt/target/run_results.json
+            dbt/payment_dbt/target/manifest.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Pipeline summary
+        if: always()
+        run: |
+          {
+            echo "## CI pipeline summary"
+            echo ""
+            echo "| Step | Command |"
+            echo "|------|---------|"
+            echo "| Raw ingest | \`make ingest\` |"
+            echo "| Ingestion QA | \`make pytest\` |"
+            echo "| Transform + views | \`make pipeline\` |"
+            echo "| Warehouse QA | \`make test\` |"
+            echo ""
+            echo "**Run:** ${{ github.run_id }} · **Ref:** \`${{ github.ref_name }}\` · **Status:** ${{ job.status }}"
+          } >> "${GITHUB_STEP_SUMMARY}"

@@ -64,8 +64,11 @@ jobs:
           restore-keys: |
             dbt-packages-
 
+      - name: Verify dbt version
+        run: .venv/bin/dbt --version
+
       - name: Install dbt packages
-        run: make setup
+        run: make deps
 
       - name: Validate dbt project (parse, no DB)
         run: cd dbt/payment_dbt && ../../.venv/bin/dbt parse
@@ -132,8 +135,11 @@ jobs:
           restore-keys: |
             dbt-packages-
 
+      - name: Verify dbt version
+        run: .venv/bin/dbt --version
+
       - name: Install dbt packages
-        run: make setup
+        run: make deps
 
       - name: Wait for PostgreSQL
         run: |

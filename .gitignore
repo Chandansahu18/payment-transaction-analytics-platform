@@ -1,0 +1,46 @@
+# Environment Variables & Secrets
+.env
+.env.*
+
+# Virtual Environment
+.venv/
+venv/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+
+# dbt 
+dbt/target/
+dbt/logs/
+dbt/.user.yml
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Data
+data/raw/
+*.csv
+*.parquet
+
+# Power BI Dashboards
+*.pbix
+*.pbit
+
+# Prefect
+.prefect/
+
+# IDE
+.vscode/
+.idea/
+
+# Testing
+.pytest_cache/
+
+# Logs
+*.log
+logs/
+
+# excel
+*.xlsx

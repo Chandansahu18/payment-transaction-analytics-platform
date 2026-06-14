@@ -1,0 +1,111 @@
+language: "en-US"
+
+tone_instructions: "Be direct, precise, and technical. Focus on data correctness, SQL performance, maintainability, and security."
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  high_level_summary_instructions: |
+    Provide a concise technical summary of changes and highlight risks.
+    Group findings by layer when relevant (Staging → Intermediate → Marts → Analytics → Orchestration).
+  review_status: true
+  collapse_walkthrough: true
+
+  labeling_instructions:
+    - label: "dbt"
+      instructions: "Apply when changes are under dbt/payment_dbt/"
+    - label: "analytics"
+      instructions: "Apply when changes are under sql/"
+    - label: "data-quality"
+      instructions: "Apply when tests or validations are modified"
+    - label: "performance"
+      instructions: "Apply when window functions, joins, or materialization changes occur"
+    - label: "breaking-change"
+      instructions: "Apply on column renames, drops, or materialization strategy changes"
+
+  auto_review:
+    enabled: true
+    ignore_title_keywords: ["WIP", "DO NOT MERGE"]
+
+  path_filters:
+    - "!**/.venv/**"
+    - "!**/__pycache__/**"
+    - "!**/target/**"
+    - "!**/dbt_packages/**"
+    - "!**/logs/**"
+
+  path_instructions:
+
+    - path: "sql/**"
+      instructions: |
+        Review standalone analytical SQL views.
+        - Use bare table names only (no schema prefixes).
+        - Verify column references against actual marts models.
+        - Use NULLIF for divisions. Add `view_generated_at` using CURRENT_TIMESTAMP.
+        - Keep velocity and risk score thresholds aligned with dbt variables.
+
+    - path: "dbt/payment_dbt/models/**"
+      instructions: |
+        - Staging: Keep transformations minimal. Prefer views. Ensure proper type casting.
+        - Intermediate: Validate fraud scoring logic and velocity window functions.
+        - Marts (Core): Use surrogate keys (user_sk, merchant_sk) in fact tables.
+        - Marts (Analytics): Ensure correct joins on surrogate keys.
+
+    - path: "dbt/payment_dbt/**/*.yml"
+      instructions: |
+        - Every model must have a description.
+        - Add tests for surrogate keys (unique + not_null) and key categorical columns.
+
+    - path: "dbt/payment_dbt/macros/**"
+      instructions: |
+        - Macros should be documented and idempotent.
+        - Avoid hardcoding values that should come from {{ var() }}.
+
+    - path: "ingestion/**"
+      instructions: |
+        - Must be idempotent.
+        - Use environment variables for credentials.
+        - Proper error handling and logging required.
+
+    - path: "generator/**"
+      instructions: |
+        - Maintain realistic fraud rate (~2.5%).
+        - Output schema must align with staging expectations.
+
+    - path: "orchestration/**"
+      instructions: |
+        - Task dependencies must follow correct order.
+        - Include retry policies and error handling.
+        - Avoid hardcoded credentials.
+
+    - path: "notebooks/**"
+      instructions: |
+        - Notebooks must be reproducible.
+        - Remove hardcoded credentials and connection strings.
+        - Keep code clean and well-commented.
+
+    - path: ".github/workflows/**"
+      instructions: |
+        - Do not hardcode secrets in workflows.
+        - Use caching where appropriate.
+        - Ensure critical steps fail fast.
+
+    - path: "scripts/**"
+      instructions: |
+        - Scripts should be idempotent where possible.
+        - Avoid shell injection risks and hardcoded credentials.
+
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: "Prefer Conventional Commits format: type(scope): description"
+    
+    custom_checks:
+      - name: "Secrets Detection"
+        mode: error
+        instructions: "Fail if diff contains hardcoded passwords, API keys, or connection strings with credentials."
+      
+      - name: "Hardcoded Schema in SQL"
+        mode: error
+        instructions: "SQL files under sql/ must not use schema-prefixed table names (e.g. marts.fct_transactions)."

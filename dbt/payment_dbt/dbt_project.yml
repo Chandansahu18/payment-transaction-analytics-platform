@@ -1,0 +1,83 @@
+name: payment_dbt
+profile: payment_dbt
+config-version: 2
+version: 1.0.0
+
+model-paths: [models]
+analysis-paths: [analyses]
+test-paths: [tests]
+seed-paths: [seeds]
+macro-paths: [macros]
+snapshot-paths: [snapshots]
+
+target-path: target
+clean-targets:
+  - target
+  - dbt_packages
+
+vars:
+  # Fraud scoring (staging + intermediate)
+  fraud_score_threshold: 0.7
+  odd_hour_start: 1
+  odd_hour_end: 5
+  high_amount_threshold: 25000
+  risky_merchant_categories: ['Travel', 'Electronics']
+  fraud_velocity_threshold_1h: 5
+  fraud_velocity_threshold_24h: 15
+
+  # Velocity anomaly - entry filters
+  velocity_entry_min_1h: 4
+  velocity_entry_min_24h: 12
+  velocity_entry_min_category_24h: 7
+
+  # Velocity anomaly - score bands
+  velocity_score_critical: 72
+  velocity_score_high: 48
+  velocity_score_medium: 28
+
+  # Velocity anomaly - transaction count thresholds
+  velocity_tx_1h_critical: 12
+  velocity_tx_1h_high: 8
+  velocity_tx_1h_medium: 6
+  velocity_tx_24h_high: 20
+  velocity_tx_24h_critical_combo: 25
+  velocity_tx_24h_medium: 18
+  velocity_action_buffer_24h: 3
+  velocity_category_high: 10
+  velocity_category_compound: 8
+  velocity_high_amount_threshold: 30000
+  velocity_fraud_score_critical: 55
+
+  # Velocity anomaly - score weights
+  velocity_score_base_1h: 4
+  velocity_score_mult_1h: 6
+  velocity_score_base_24h: 12
+  velocity_score_mult_24h: 1.8
+  velocity_score_base_category: 5
+  velocity_score_mult_category: 2.5
+  velocity_score_high_amount_pts: 12
+  velocity_score_odd_hour_pts: 6
+  velocity_score_fraud_mult: 0.12
+  velocity_score_fraud_cap: 12
+
+  # Merchant risk profiling
+  merchant_risk_min_transactions: 50
+  merchant_risk_high_fraud_rate_pct: 5
+  merchant_risk_medium_fraud_rate_pct: 2
+  merchant_risk_high_avg_score: 60
+  merchant_risk_medium_avg_score: 40
+
+models:
+  payment_dbt:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: table
+      +schema: intermediate
+    marts:
+      +schema: marts
+      core:
+        +materialized: table
+      analytics:
+        +materialized: table

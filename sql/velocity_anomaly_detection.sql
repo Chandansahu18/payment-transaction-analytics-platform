@@ -1,0 +1,26 @@
+CREATE OR REPLACE VIEW reporting.velocity_anomaly_detection AS
+SELECT
+    transaction_id,
+    user_id,
+    transaction_ts,
+    transaction_date,
+    tx_hour,
+    merchant_category,
+    payment_method,
+    amount,
+    device_type,
+    status,
+    tx_count_1h,
+    tx_count_24h,
+    tx_same_category_24h,
+    velocity_score,
+    velocity_alert_level,
+    is_critical,
+    action_required,
+    velocity_breach_type,
+    fraud_risk_score,
+    fraud_risk_level,
+    fraud_reason,
+    is_fraud,
+    CURRENT_TIMESTAMP AS view_generated_at
+FROM marts.velocity_anomaly_detection;

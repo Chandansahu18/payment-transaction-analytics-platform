@@ -7,10 +7,12 @@ import pandas as pd
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from constants import (  
+from constants import (
     EXPECTED_MERCHANTS,
     EXPECTED_TRANSACTIONS,
     EXPECTED_USERS,
+    TARGET_FRAUD_RATE_PCT,
+    TARGET_FRAUD_TOLERANCE_PCT,
 )
 
 from ingestion.load_to_postgres import load_data_to_postgres
@@ -65,7 +67,9 @@ def test_csv_transaction_ids_are_unique(require_csv_files):
 def test_csv_fraud_rate_within_generator_tolerance(require_csv_files):
     df = pd.read_csv(require_csv_files / "transactions.csv", usecols=["is_fraud"])
     fraud_rate_pct = df["is_fraud"].mean() * 100
-    assert 3.0 <= fraud_rate_pct <= 4.0
+    lower = TARGET_FRAUD_RATE_PCT - TARGET_FRAUD_TOLERANCE_PCT
+    upper = TARGET_FRAUD_RATE_PCT + TARGET_FRAUD_TOLERANCE_PCT
+    assert lower <= fraud_rate_pct <= upper
 
 # Integration - raw schema in PostgreSQL (requires make up + make ingest)
 def test_raw_schema_exists(db_cursor):

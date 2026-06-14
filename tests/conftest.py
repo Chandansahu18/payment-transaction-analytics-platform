@@ -1,5 +1,3 @@
-"""Shared fixtures for ingestion and pipeline quality tests."""
-
 from __future__ import annotations
 
 import os
@@ -47,15 +45,15 @@ def require_csv_files(data_raw_dir: Path) -> Path:
 
 @pytest.fixture
 def db_cursor():
-    """Read-only database cursor; skips when PostgreSQL is unreachable."""
+   # Read-only database cursor; skips when PostgreSQL is unreachable.
     if not _postgres_env_ready():
         pytest.skip("PostgreSQL env vars not set — copy .env.example to .env")
 
     from ingestion.db_utils import get_db_connection
 
     try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                yield cur
+        with get_db_connection() as conn, conn.cursor() as cur:
+            conn.set_session(readonly=True)
+            yield cur
     except Exception as exc:
         pytest.skip(f"PostgreSQL not available: {exc}")

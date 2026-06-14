@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import logging
 from typing import Optional
 from .db_utils import get_db_connection
+from .reset_raw import reset_raw_tables
 from . import watermark
 
 load_dotenv()
@@ -95,6 +96,7 @@ def load_data_to_postgres(
 
 if __name__ == "__main__":
     logger.info("Starting data ingestion into PostgreSQL...")
+    reset_raw_tables()
 
     load_data_to_postgres('data/raw/users.csv', 'raw.users', conflict_column='user_id')
     load_data_to_postgres('data/raw/merchants.csv', 'raw.merchants', conflict_column='merchant_id')

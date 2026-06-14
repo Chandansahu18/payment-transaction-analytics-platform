@@ -18,7 +18,7 @@ DBT_RUN := cd $(DBT_DIR) && $(DBT)
 .PHONY: help setup setup-db up down logs \
         ingest pipeline publish refresh excel \
         generate-data load-data reset-raw deploy-views \
-        deps build run test compile docs debug list clean \
+        deps build run test pytest compile docs debug list clean \
         warehouse refresh-data docker-up docker-down docker-logs all serve seed
 
 help:
@@ -41,6 +41,7 @@ help:
 	@echo "    make build       dbt build          [SELECT=model_name]"
 	@echo "    make run         dbt run            [SELECT=staging]"
 	@echo "    make test        dbt test           [SELECT=marts]"
+	@echo "    make pytest      Ingestion QA tests (tests/test_ingestion.py)"
 	@echo "    make docs        Generate dbt documentation"
 	@echo ""
 	@echo "  EXAMPLES"
@@ -108,6 +109,9 @@ run:
 
 test:
 	$(DBT_RUN) test $(if $(SELECT),--select $(SELECT),)
+
+pytest:
+	$(PYTHON) -m pytest tests/ -v
 
 compile:
 	$(DBT_RUN) compile $(if $(SELECT),--select $(SELECT),)

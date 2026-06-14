@@ -1,6 +1,6 @@
 # Payment Transaction Analytics Platform
 
-A **payments analytics platform** on synthetic Indian transaction data — Python ingestion, **PostgreSQL** medallion warehouse, **dbt** fraud-risk pipeline, governed KPI catalog, and a **7-page executive Power BI dashboard**.
+A **payments analytics platform** on synthetic Indian transaction data - Python ingestion, **PostgreSQL** medallion warehouse, **dbt** fraud-risk pipeline, governed KPI catalog, and a **7-page executive Power BI dashboard**.
 
 **Focus:** Fraud monitoring, merchant risk, velocity detection, and customer segmentation on a governed star schema and KPI catalog.
 

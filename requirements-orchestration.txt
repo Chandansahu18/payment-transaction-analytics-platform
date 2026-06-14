@@ -1,4 +1,9 @@
-# Prefect 2.19 conflicts with dbt-core 1.11 on a single fresh pip resolve.
-# Use: python -m venv .venv-orchestration && pip install -r requirements-orchestration.txt
+# Separate venv: prefect 2.19 conflicts with dbt-core 1.11 on one pip resolve.
+# Setup: make prefect-setup
 
 prefect==2.19.0
+python-dotenv==1.0.1
+psycopg2-binary==2.9.9
+griffe==0.49.0
+pydantic==2.9.2
+pydantic-core==2.23.4

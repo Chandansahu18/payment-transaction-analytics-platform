@@ -6,11 +6,16 @@ export PGPASSWORD := $(POSTGRES_PASSWORD)
 
 ifeq ($(OS),Windows_NT)
     VENV_BIN := .venv/Scripts
+    ORCH_VENV_BIN := .venv-orchestration/Scripts
 else
     VENV_BIN := .venv/bin
+    ORCH_VENV_BIN := .venv-orchestration/bin
 endif
 
 PYTHON  := "$(CURDIR)/$(VENV_BIN)/python"
+ORCH_PYTHON := "$(CURDIR)/$(ORCH_VENV_BIN)/python"
+ORCH_PREFECT := "$(CURDIR)/$(ORCH_VENV_BIN)/prefect"
+export PYTHONPATH := $(CURDIR)
 DBT_DIR := dbt/payment_dbt
 DBT     := "$(CURDIR)/$(VENV_BIN)/dbt"
 DBT_RUN := cd $(DBT_DIR) && $(DBT)
@@ -19,7 +24,8 @@ DBT_RUN := cd $(DBT_DIR) && $(DBT)
         ingest pipeline publish refresh excel \
         generate-data load-data reset-raw deploy-views \
         deps build run test pytest compile docs debug list clean \
-        warehouse refresh-data docker-up docker-down docker-logs all serve seed
+        warehouse refresh-data docker-up docker-down docker-logs all serve seed \
+        prefect-setup prefect-run prefect-serve prefect-server
 
 help:
 	@echo ""
@@ -43,6 +49,12 @@ help:
 	@echo "    make test        dbt test           [SELECT=marts]"
 	@echo "    make pytest      Ingestion QA tests (tests/test_ingestion.py)"
 	@echo "    make docs        Generate dbt documentation"
+	@echo ""
+	@echo "  ORCHESTRATION (Prefect — separate .venv-orchestration)"
+	@echo "    make prefect-setup   Create orchestration venv + install Prefect"
+	@echo "    make prefect-run     Run pipeline flow once"
+	@echo "    make prefect-serve   Serve deployment (optional CRON=\"0 2 * * *\")"
+	@echo "    make prefect-server  Start local Prefect UI (http://localhost:4200)"
 	@echo ""
 	@echo "  EXAMPLES"
 	@echo "    make up && make setup-db"
@@ -137,3 +149,17 @@ clean:
 warehouse: pipeline
 refresh-data: refresh
 all: setup setup-db pipeline docs
+
+prefect-setup:
+	python -m venv .venv-orchestration
+	$(ORCH_PYTHON) -m pip install --upgrade pip
+	$(ORCH_PYTHON) -m pip install -r requirements-orchestration.txt
+
+prefect-run:
+	$(ORCH_PYTHON) -m orchestration.pipeline_flow
+
+prefect-serve:
+	$(ORCH_PYTHON) -m orchestration.serve $(if $(CRON),--cron "$(CRON)",) $(if $(TIMEZONE),--timezone "$(TIMEZONE)",)
+
+prefect-server:
+	$(ORCH_PREFECT) server start

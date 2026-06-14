@@ -1,0 +1,4 @@
+# Prefect 2.19 conflicts with dbt-core 1.11 on a single fresh pip resolve.
+# Use: python -m venv .venv-orchestration && pip install -r requirements-orchestration.txt
+
+prefect==2.19.0

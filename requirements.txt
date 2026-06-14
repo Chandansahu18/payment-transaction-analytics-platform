@@ -6,15 +6,12 @@ python-dotenv==1.0.1
 # Synthetic Data Generation
 faker==25.9.1
 
-# Orchestration
-prefect==2.19.0
-
 # Testing
 pytest==8.2.2
 
-# Analytics (dbt) — pin dbt-core; unpinned 1.8.0 pulls Fusion 2.0 (no postgres)
-dbt-core==1.8.2
-dbt-postgres==1.8.0
+# Analytics (dbt)
+dbt-core==1.11.11
+dbt-postgres==1.10.0
 
 # Visualization & Notebooks
 jupyter==1.0.0

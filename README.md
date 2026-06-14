@@ -1,6 +1,6 @@
 # Payment Transaction Analytics Platform
 
-A **production-pattern payments analytics platform** on synthetic Indian transaction data — Python ingestion, **PostgreSQL** medallion warehouse, **dbt** fraud-risk pipeline (tests), governed KPI catalog, and a **7-page executive Power BI dashboard**.
+A **payments analytics platform** on synthetic Indian transaction data — Python ingestion, **PostgreSQL** medallion warehouse, **dbt** fraud-risk pipeline, governed KPI catalog, and a **7-page executive Power BI dashboard**.
 
 **Focus:** Fraud monitoring, merchant risk, velocity detection, and customer segmentation on a governed star schema and KPI catalog.
 
@@ -38,6 +38,7 @@ A **production-pattern payments analytics platform** on synthetic Indian transac
 - [Repository Structure](#repository-structure)
 - [Quick Start](#quick-start)
 - [Pipeline Commands](#pipeline-commands)
+- [Testing](#testing)
 - [Warehouse Layers](#warehouse-layers)
 - [Power BI Model](#power-bi-model)
 - [Documentation](#documentation)
@@ -58,7 +59,7 @@ Payment platforms bleed revenue when teams **cannot agree on the numbers** - fra
 | Merchant reviews biased by tiny sample sizes | `is_rate_reliable` guardrail before Top N on Page 04 |
 | No prioritised velocity worklist | `action_required` queue on Page 06 from `velocity_anomaly_detection` |
 | Customer risk and value viewed separately | `fraud_customer_segments` - fraud propensity × monetary tier on Page 05 |
-| Metrics undocumented — every dashboard debate restarts | `docs/kpi_definitions.md` + layer dictionaries + dbt tests |
+| Metrics undocumented - every dashboard debate restarts | `docs/kpi_definitions.md` + layer dictionaries + **`pytest`** (raw QA) + **`dbt test`** (marts) |
 
 Full context: [`docs/problem_statement.md`](docs/problem_statement.md)
 
@@ -194,7 +195,11 @@ flowchart TB
 | Transform | dbt-postgres 1.8 |
 | Reporting views | SQL + `deploy_views.py` |
 | BI | Power BI Desktop (Import) |
-| Orchestration | Makefile (Prefect listed, not wired) |
+| Local workflow | Makefile - manual `make` targets; |
+| Ingestion tests | pytest (`make pytest`) - raw CSV + `raw.*` tables |
+| Warehouse tests | dbt schema tests (`make test`) - staging → marts |
+| Orchestration | **Not wired yet** |
+| CI/CD | **Not wired yet** |
 | Analysis | Jupyter, pandas, plotly |
 
 ---
@@ -211,6 +216,8 @@ payment-transaction-analytics-platform/
 ├── dashboard/screenshots/   # Power BI page previews
 ├── excel/                 # Excel workbook generator
 ├── notebooks/             # EDA notebooks (warehouse + fraud + segments)
+├── tests/                 # pytest — ingestion / raw layer only
+├── pytest.ini             # pytest config (testpaths, pythonpath)
 ├── docker-compose.yml     # PostgreSQL
 ├── Makefile              
 └── requirements.txt
@@ -254,8 +261,14 @@ make setup-db
 # 6. Generate + load data
 make ingest
 
+# 6b. (Optional) Validate raw ingestion
+make pytest
+
 # 7. Transform + publish reporting views
 make pipeline
+
+# 7b. (Optional) Validate warehouse models
+make test
 ```
 
 ### Connect Power BI
@@ -275,8 +288,9 @@ Metric definitions and formatting rules: [`docs/kpi_definitions.md`](docs/kpi_de
 |---------|----------------|
 | `make up` | Start PostgreSQL (Docker) |
 | `make ingest` | Generate CSVs + load `raw` tables |
+| `make pytest` | Run **pytest** — raw CSV + `raw.*` ingestion QA only |
 | `make pipeline` | `dbt build` + deploy `reporting.*` views |
-| `make test` | Run dbt tests (`SELECT=marts` optional) |
+| `make test` | Run **dbt** warehouse tests only (`SELECT=marts` optional) |
 | `make excel` | Export Excel workbook from marts |
 | `make publish` | Deploy `reporting.*` views only |
 | `make refresh` | **Full rebuild** - resets raw, re-ingests, re-runs pipeline |
@@ -289,6 +303,15 @@ make docs                                       # dbt lineage docs
 ```
 
 Full command reference: `make help` · dbt details: [`dbt/payment_dbt/README.md`](dbt/payment_dbt/README.md)
+
+### Testing
+
+Quality checks are split by layer - **pytest does not run dbt tests**.
+
+| Command | Scope | When to run |
+|---------|--------|-------------|
+| `make pytest` | Raw CSV contracts + `raw.*` Postgres loads | After `make ingest` |
+| `make test` | dbt schema tests on staging → marts | After `make pipeline` or `dbt build` |
 
 ---
 
@@ -344,12 +367,14 @@ This repo includes **platform documentation** under [`docs/`](docs/):
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 1 | Synthetic data generation + PostgreSQL ingestion (`raw` layer) | ✅ Complete |
-| Phase 2 | dbt warehouse - staging, intermediate fraud engine, marts | ✅ Complete |
+| Phase 1 | Synthetic data generation + PostgreSQL ingestion (`raw` layer) + pytest raw QA | ✅ Complete |
+| Phase 2 | dbt warehouse - staging, intermediate fraud engine, marts + dbt tests | ✅ Complete |
 | Phase 3 | `reporting.*` views + SQL analytics layer | ✅ Complete |
 | Phase 4 | Jupyter EDA notebooks (fraud, segments, warehouse) | ✅ Complete |
 | Phase 5 | Power BI dashboard - 7 pages, star schema, DAX measures | ✅ Complete |
-| Phase 6 | Analytics platform documentation + dbt tests | ✅ Complete |
+| Phase 6 | Analytics platform documentation | ✅ Complete |
+| Phase 7 | Workflow orchestration (Prefect / Airflow) + job scheduling | 🔲 Planned |
+| Phase 8 | CI/CD — GitHub Actions (`make pytest` + `make test` on push) | 🔲 Planned |
 
 ---
 

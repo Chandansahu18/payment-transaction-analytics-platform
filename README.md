@@ -307,8 +307,6 @@ Metric definitions and formatting rules: [`docs/kpi_definitions.md`](docs/kpi_de
 | `make prefect-run` | Run orchestrated flow once (`up` → `ingest` → `pytest` → `pipeline` → `test`) |
 | `make prefect-serve` | Serve scheduled deployment (optional `CRON="0 2 * * *"`) |
 
-> **Important:** Do **not** run `make refresh` unless intentionally recalibrating. Dashboard KPIs and docs baselines are validated on the current generator output.
-
 Orchestration details: [`orchestration/README.md`](orchestration/README.md)
 
 ```bash

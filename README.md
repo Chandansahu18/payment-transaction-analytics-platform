@@ -54,7 +54,7 @@ Payment platforms bleed revenue when teams **cannot agree on the numbers** - fra
 
 | Pain today | What this platform delivers |
 |------------|----------------------------|
-| No single source of truth for GMV, success, or fraud loss | Locked KPIs on one star schema - Fraud ~**3.5%** · Success ~**92.6%** · Loss ~**₹88M** |
+| No single source of truth for GMV, success, or fraud loss | Locked KPIs on one star schema - GMV **₹3.4Bn** · Fraud ~**3.5%** · Success ~**92.6%** · Loss ~**₹88M** |
 | Fraud ops blind to hour and category concentration | Off-hours (1-5 AM) and Travel/Electronics risk on Page 03 + `hourly_fraud_trends` |
 | Merchant reviews biased by tiny sample sizes | `is_rate_reliable` guardrail before Top N on Page 04 |
 | No prioritised velocity worklist | `action_required` queue on Page 06 from `velocity_anomaly_detection` |
@@ -82,7 +82,7 @@ Power BI dashboard (Import mode from PostgreSQL).
 ### Dashboard Pages
 
 #### Page 01 - Executive Summary
-KPI cards: **~500K transactions** · **~92.6% success rate** · **~3.5% fraud rate** · **~₹88M fraud loss** · GMV validation vs `daily_overview_kpis`. Month-over-month GMV and volume trends.
+KPI cards: **~500K transactions** · **₹3.4Bn GMV** · **~92.6% success rate** · **~3.5% fraud rate** · **~₹88M fraud loss** · GMV validation vs `daily_overview_kpis`. Month-over-month GMV and volume trends.
 
 ![Page 01 Executive Summary](dashboard/screenshots/01_Executive_Summary.png)
 
@@ -120,7 +120,7 @@ Headline findings, prioritised actions (off-hours monitoring, merchant review, v
 
 ## Key Business Insights
 
-1. **~₹88M fraud loss at ~3.5% fraud rate** - fraud is a material drag on a **~₹3.67B GMV** base (~2.4% fraud-loss-to-GMV ratio). Executive KPIs reconcile between `fct_transactions` and `daily_overview_kpis` on Page 01.
+1. **~₹88M fraud loss at ~3.5% fraud rate** - fraud is a material drag on a **₹3.4Bn GMV** base (~2.6% fraud-loss-to-GMV ratio). Executive KPIs reconcile between `fct_transactions` and `daily_overview_kpis` on Page 01.
 
 2. **Off-hours fraud is structurally higher (1-5 AM)** - `is_odd_hour` and `hourly_fraud_trends` justify tightening overnight monitoring rules and staffing fraud ops for the early-morning window.
 
@@ -199,7 +199,7 @@ flowchart TB
 | Ingestion tests | pytest (`make pytest`) - raw CSV + `raw.*` tables |
 | Warehouse tests | dbt schema tests (`make test`) - staging → marts |
 | Orchestration | **Not wired yet** |
-| CI/CD | **Not wired yet** |
+| CI/CD | GitHub Actions - unit tests + E2E (`ingest` · `pytest` · `dbt`) on push/PR to `main` |
 | Analysis | Jupyter, pandas, plotly |
 
 ---
@@ -218,6 +218,7 @@ payment-transaction-analytics-platform/
 ├── notebooks/             # EDA notebooks (warehouse + fraud + segments)
 ├── tests/                 # pytest — ingestion / raw layer only
 ├── pytest.ini             # pytest config (testpaths, pythonpath)
+├── .github/workflows/     # GitHub Actions CI (unit + E2E pipeline)
 ├── docker-compose.yml     # PostgreSQL
 ├── Makefile              
 └── requirements.txt
@@ -374,7 +375,7 @@ This repo includes **platform documentation** under [`docs/`](docs/):
 | Phase 5 | Power BI dashboard - 7 pages, star schema, DAX measures | ✅ Complete |
 | Phase 6 | Analytics platform documentation | ✅ Complete |
 | Phase 7 | Workflow orchestration (Prefect / Airflow) + job scheduling | 🔲 Planned |
-| Phase 8 | CI/CD — GitHub Actions (`make pytest` + `make test` on push) | 🔲 Planned |
+| Phase 8 | CI/CD — GitHub Actions (`make pytest` + `make test` on push) | ✅ Complete |
 
 ---
 

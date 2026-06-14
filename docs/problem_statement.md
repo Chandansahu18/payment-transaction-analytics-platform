@@ -13,7 +13,7 @@
 
 Fraud and risk detected late-or measured inconsistently-cost payments platforms revenue and trust. This project delivers a **governed PostgreSQL + dbt + Power BI stack** on ~500k synthetic Indian payments so every team shares **one KPI set**.
 
-**Baselines:** Fraud Rate ~**3.5%** · Success Rate ~**92.6%** · Fraud Loss ~**₹88M**
+**Baselines:** GMV **₹3.4Bn** · Fraud Rate ~**3.5%** · Success Rate ~**92.6%** · Fraud Loss ~**₹88M**
 
 ---
 
@@ -141,7 +141,7 @@ Generator: [`generator/transaction_generator.py`](../generator/transaction_gener
 |-----------|--------|--------|
 | Pipeline runs end-to-end | `make pipeline` without errors | Met |
 | dbt tests | 81/81 PASS | Met |
-| Headline KPI baselines | Fraud Rate ~3.5% · Success Rate ~92.6% · Fraud Loss ~₹88M | Met |
+| Headline KPI baselines | GMV ₹3.4Bn · Fraud Rate ~3.5% · Success Rate ~92.6% · Fraud Loss ~₹88M | Met |
 | Dashboard pages | 7 pages with screenshots | Met |
 | Metric documentation | `kpi_definitions.md` + dictionaries | Met |
 | Known limitations documented | Page 07 + `initial_observation.md` | Met |

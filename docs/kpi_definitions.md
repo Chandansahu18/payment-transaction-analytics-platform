@@ -14,7 +14,7 @@
 Single source of truth for **business metric definitions** consumed by Power BI, Excel, and **`reporting.*` SQL views**. This file must be used before making dashboard metrics or writing warehouse SQL - inconsistent definitions are the main cause of stakeholder distrust.
 
 
-**Baseline (locked):** Fraud Rate ~**3.5%** · Success Rate ~**92.6%** · Fraud Loss ~**₹88M**
+**Baseline (locked):** GMV **₹3.4Bn** · Fraud Rate ~**3.5%** · Success Rate ~**92.6%** · Fraud Loss ~**₹88M** · Fraud Loss Rate ~**2.6% of GMV**
 
 ---
 
@@ -66,7 +66,7 @@ Single source of truth for **business metric definitions** consumed by Power BI,
 | **Avg Fraud Risk Score** | Mean composite risk score | `AVERAGE(fraud_risk_score)` | `marts.fct_transactions` |
 | **Hourly Fraud Rate** | Pre-aggregated fraud rate by hour × category | `fraud_rate_pct / 100` | `marts.hourly_fraud_trends` |
 
-**Validated baselines:** Fraud Rate ~**3.5%** · Success Rate ~**92.6%** · Fraud Loss ~**₹88M** · Fraud Loss Rate ~**2.4% of GMV**
+**Validated baselines:** GMV **₹3.4Bn** · Fraud Rate ~**3.5%** · Success Rate ~**92.6%** · Fraud Loss ~**₹88M** · Fraud Loss Rate ~**2.6% of GMV**
 
 ---
 

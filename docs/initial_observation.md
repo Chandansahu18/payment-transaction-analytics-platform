@@ -13,7 +13,7 @@
 
 ~500k synthetic payments (Jan 2024–Jun 2025) support fraud, merchant risk, velocity, and segment analytics.
 
-**Baselines:** Fraud Rate ~**3.5%** · Success Rate ~**92.6%** · Fraud Loss ~**₹88M**
+**Baselines:** GMV **₹3.4Bn** · Fraud Rate ~**3.5%** · Success Rate ~**92.6%** · Fraud Loss ~**₹88M**
 
 **Actions:** Monitor 1–5 AM · review Travel/Electronics merchants · action `action_required` on velocity queue · rank merchants only when `is_rate_reliable`.
 
@@ -102,7 +102,7 @@ flowchart LR
 
 1. Stationary success/failure rates over 18 months  
 2. Flat cohort retention—warehouse only, not trend chart  
-3. Headline KPIs locked: Fraud Rate ~3.5% · Success Rate ~92.6% · Fraud Loss ~₹88M  
+3. Headline KPIs locked: GMV ₹3.4Bn · Fraud Rate ~3.5% · Success Rate ~92.6% · Fraud Loss ~₹88M
 4. Rare `disputed` status  
 5. Payments-only—no marketing / clickstream feeds  
 

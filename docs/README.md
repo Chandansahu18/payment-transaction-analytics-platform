@@ -108,7 +108,7 @@ make refresh     # reset + ingest + pipeline
 
 - Raw CSVs in `data/raw/` are **gitignored** - run `make ingest` after clone.
 - `.pbix` files are **gitignored** - portfolio preview via screenshots only.
-- **Locked headline KPIs:** Fraud Rate ~**3.5%** · Success Rate ~**92.6%** · Fraud Loss ~**₹88M** (generator calibrated; do not change without `make refresh` + re-validation).
+- **Locked headline KPIs:** GMV **₹3.4Bn** · Fraud Rate ~**3.5%** · Success Rate ~**92.6%** · Fraud Loss ~**₹88M** (generator calibrated; do not change without `make refresh` + re-validation).
 - Do not run `make refresh` unless intentionally recalibrating - dashboard validated on current baseline.
 - `reporting.*` views intentionally use schema prefixes - see `sql/deploy_views.py`.
 

@@ -192,7 +192,7 @@ make refresh
 ## 7. Data Quality Notes
 
 - CSV files are **not committed** to Git (`.gitignore`). Regenerate after clone.
-- `is_fraud` is **synthetic ground truth** from the generator - calibrated to headline KPIs: Fraud Rate ~**3.5%**, Success Rate ~**92.6%**, Fraud Loss ~**₹88M**.
+- `is_fraud` is **synthetic ground truth** from the generator - calibrated to headline KPIs: GMV **₹3.4Bn**, Fraud Rate ~**3.5%**, Success Rate ~**92.6%**, Fraud Loss ~**₹88M**.
 - `merchant_category` on transactions is **denormalized by design** - preserves category at txn time.
 - `transaction_ts` is proper TIMESTAMP in raw - no VARCHAR-to-timestamp casting required at staging.
 - Fraud burst logic and user segments in the generator create **realistic heterogeneity** but **limited MoM trend variation**.

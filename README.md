@@ -10,6 +10,8 @@ A **payments analytics platform** on synthetic Indian transaction data - Python 
 ![Power BI](https://img.shields.io/badge/Power_BI-Dashboard-F2C811)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
 ![pytest](https://img.shields.io/badge/Tests-pytest-red)
+![Prefect](https://img.shields.io/badge/Orchestration-Prefect_2-5547DE)
+![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF)
 
 ## Dashboard Preview
 
@@ -198,7 +200,7 @@ flowchart TB
 | Local workflow | Makefile - manual `make` targets; |
 | Ingestion tests | pytest (`make pytest`) - raw CSV + `raw.*` tables |
 | Warehouse tests | dbt schema tests (`make test`) - staging → marts |
-| Orchestration | **Not wired yet** |
+| Orchestration | Prefect 2 - `make prefect-run` / `make prefect-serve` (`.venv-orchestration`) |
 | CI/CD | GitHub Actions - unit tests + E2E (`ingest` · `pytest` · `dbt`) on push/PR to `main` |
 | Analysis | Jupyter, pandas, plotly |
 
@@ -219,6 +221,7 @@ payment-transaction-analytics-platform/
 ├── tests/                 # pytest — ingestion / raw layer only
 ├── pytest.ini             # pytest config (testpaths, pythonpath)
 ├── .github/workflows/     # GitHub Actions CI (unit + E2E pipeline)
+├── orchestration/         # Prefect flows (Makefile-driven pipeline)
 ├── docker-compose.yml     # PostgreSQL
 ├── Makefile              
 └── requirements.txt
@@ -270,6 +273,11 @@ make pipeline
 
 # 7b. (Optional) Validate warehouse models
 make test
+
+# 8. (Optional) Prefect orchestration - required once per machine after clone
+make prefect-setup
+make prefect-run
+# Details: orchestration/README.md
 ```
 
 ### Connect Power BI
@@ -295,8 +303,13 @@ Metric definitions and formatting rules: [`docs/kpi_definitions.md`](docs/kpi_de
 | `make excel` | Export Excel workbook from marts |
 | `make publish` | Deploy `reporting.*` views only |
 | `make refresh` | **Full rebuild** - resets raw, re-ingests, re-runs pipeline |
+| `make prefect-setup` | Create `.venv-orchestration` + install Prefect |
+| `make prefect-run` | Run orchestrated flow once (`up` → `ingest` → `pytest` → `pipeline` → `test`) |
+| `make prefect-serve` | Serve scheduled deployment (optional `CRON="0 2 * * *"`) |
 
 > **Important:** Do **not** run `make refresh` unless intentionally recalibrating. Dashboard KPIs and docs baselines are validated on the current generator output.
+
+Orchestration details: [`orchestration/README.md`](orchestration/README.md)
 
 ```bash
 make build SELECT=velocity_anomaly_detection   # Single model
@@ -374,7 +387,7 @@ This repo includes **platform documentation** under [`docs/`](docs/):
 | Phase 4 | Jupyter EDA notebooks (fraud, segments, warehouse) | ✅ Complete |
 | Phase 5 | Power BI dashboard - 7 pages, star schema, DAX measures | ✅ Complete |
 | Phase 6 | Analytics platform documentation | ✅ Complete |
-| Phase 7 | Workflow orchestration (Prefect / Airflow) + job scheduling | 🔲 Planned |
+| Phase 7 | Workflow orchestration  | ✅ Complete |
 | Phase 8 | CI/CD — GitHub Actions (`make pytest` + `make test` on push) | ✅ Complete |
 
 ---

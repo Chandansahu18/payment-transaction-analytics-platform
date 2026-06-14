@@ -1,5 +1,7 @@
 import uuid
 import random
+from pathlib import Path
+
 import pandas as pd
 from faker import Faker
 from datetime import datetime, timedelta, date
@@ -351,6 +353,8 @@ def _calibrate_fraud_rate(transactions_df, target_pct):
 
 if __name__ == '__main__':
     print("Generating synthetic payment data with realistic fraud patterns...")
+
+    Path('data/raw').mkdir(parents=True, exist_ok=True)
 
     print("→ Generating users...")
     users = generate_users(NUM_USERS)

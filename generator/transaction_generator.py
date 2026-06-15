@@ -47,10 +47,10 @@ DATA_END = datetime(2025, 6, 30)
 
 def generate_users(n=NUM_USERS):
     users = []
-    for _ in range(n):
+    for i in range(1, n + 1):
         city = random.choice(INDIAN_CITIES)
         users.append({
-            'user_id': f"USR_{str(uuid.uuid4())[:8].upper()}",
+            'user_id': f"USR_{i:08d}",
             'age_group': random.choice(AGE_GROUPS),
             'account_type': random.choice(ACCOUNT_TYPES),
             'registration_date': fake.date_between(start_date=date(2024, 1, 1), end_date=date(2025, 3, 31)),
@@ -62,11 +62,11 @@ def generate_users(n=NUM_USERS):
 
 def generate_merchants(n=NUM_MERCHANTS):
     merchants = []
-    for _ in range(n):
+    for i in range(1, n + 1):
         category = random.choice(MERCHANT_CATEGORIES)
         city = random.choice(INDIAN_CITIES)
         merchants.append({
-            'merchant_id': f"MER_{str(uuid.uuid4())[:8].upper()}",
+            'merchant_id': f"MER_{i:06d}",
             'merchant_name': fake.company(),
             'merchant_category': category,
             'city': city,

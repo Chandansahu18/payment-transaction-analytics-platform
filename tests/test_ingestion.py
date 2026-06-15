@@ -64,6 +64,16 @@ def test_csv_transaction_ids_are_unique(require_csv_files):
     assert df["transaction_id"].is_unique
 
 
+def test_csv_dimension_ids_are_stable_natural_keys(require_csv_files):
+    users = pd.read_csv(require_csv_files / "users.csv", usecols=["user_id"])
+    merchants = pd.read_csv(require_csv_files / "merchants.csv", usecols=["merchant_id"])
+
+    assert users["user_id"].is_unique
+    assert merchants["merchant_id"].is_unique
+    assert users["user_id"].str.match(r"^USR_\d{8}$").all()
+    assert merchants["merchant_id"].str.match(r"^MER_\d{6}$").all()
+
+
 def test_csv_fraud_rate_within_generator_tolerance(require_csv_files):
     df = pd.read_csv(require_csv_files / "transactions.csv", usecols=["is_fraud"])
     fraud_rate_pct = df["is_fraud"].mean() * 100

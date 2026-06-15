@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 import logging
 from typing import Optional
 from .db_utils import get_db_connection
-from .reset_raw import reset_raw_tables
 from . import watermark
 
 load_dotenv()
@@ -21,7 +20,8 @@ def load_data_to_postgres(
     csv_path: str, 
     table_name: str, 
     incremental: bool = False,
-    conflict_column: Optional[str] = None
+    conflict_column: Optional[str] = None,
+    upsert: bool = False,
 ):
     try:
         df = pd.read_csv(csv_path)
@@ -50,7 +50,22 @@ def load_data_to_postgres(
                 columns = [psycopg2.sql.Identifier(col) for col in df.columns]
                 cols_sql = psycopg2.sql.SQL(', ').join(columns)
 
-                if conflict_column:
+                if conflict_column and upsert:
+                    update_cols = [col for col in df.columns if col != conflict_column]
+                    set_clause = psycopg2.sql.SQL(", ").join(
+                        psycopg2.sql.SQL("{} = EXCLUDED.{}").format(
+                            psycopg2.sql.Identifier(col),
+                            psycopg2.sql.Identifier(col),
+                        )
+                        for col in update_cols
+                    )
+                    conflict_sql = psycopg2.sql.SQL(
+                        "ON CONFLICT ({}) DO UPDATE SET {}"
+                    ).format(
+                        psycopg2.sql.Identifier(conflict_column),
+                        set_clause,
+                    )
+                elif conflict_column:
                     conflict_sql = psycopg2.sql.SQL("ON CONFLICT ({}) DO NOTHING").format(
                         psycopg2.sql.Identifier(conflict_column)
                     )
@@ -95,11 +110,14 @@ def load_data_to_postgres(
         raise
 
 if __name__ == "__main__":
-    logger.info("Starting data ingestion into PostgreSQL...")
-    reset_raw_tables()
+    logger.info("Starting incremental data ingestion into PostgreSQL...")
 
-    load_data_to_postgres('data/raw/users.csv', 'raw.users', conflict_column='user_id')
-    load_data_to_postgres('data/raw/merchants.csv', 'raw.merchants', conflict_column='merchant_id')
+    load_data_to_postgres(
+        'data/raw/users.csv', 'raw.users', conflict_column='user_id', upsert=True
+    )
+    load_data_to_postgres(
+        'data/raw/merchants.csv', 'raw.merchants', conflict_column='merchant_id', upsert=True
+    )
 
     load_data_to_postgres(
         csv_path='data/raw/transactions.csv',

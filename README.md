@@ -296,8 +296,8 @@ Metric definitions and formatting rules: [`docs/kpi_definitions.md`](docs/kpi_de
 | Command | What it does |
 |---------|----------------|
 | `make up` | Start PostgreSQL (Docker) |
-| `make ingest` | Generate CSVs + load `raw` tables |
-| `make pytest` | Run **pytest** — raw CSV + `raw.*` ingestion QA only |
+| `make ingest` | Generate CSVs + incremental load into `raw` (upsert users/merchants, watermark txns) |
+| `make pytest` | Run **pytest** - raw CSV + `raw.*` ingestion QA only |
 | `make pipeline` | `dbt build` + deploy `reporting.*` views |
 | `make test` | Run **dbt** warehouse tests only (`SELECT=marts` optional) |
 | `make excel` | Export Excel workbook from marts |

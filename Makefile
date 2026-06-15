@@ -35,7 +35,7 @@ help:
 	@echo "    make refresh     Full rebuild (reset + ingest + pipeline)"
 	@echo ""
 	@echo "  DATA"
-	@echo "    make ingest      Generate synthetic CSVs + load into raw tables"
+	@echo "    make ingest      Generate CSVs + incremental load (upsert dims, watermark txns)"
 	@echo "    make publish     Deploy reporting.* views only"
 	@echo "    make excel       Export Excel dashboard workbook"
 	@echo ""
